@@ -39,15 +39,6 @@ class AIIoTShield(tkinter.Toplevel):
         thread.finished.connect(self.scan_complete)
         thread.start()
 
-    def update_device_table(self, devices):
-        # Update the table with the list of detected devices
-        self.ui.message_label.setText(f"Detected {len(devices)} devices")
-        self.ui.tableWidget.setRowCount(len(devices))
-        for row, device in enumerate(devices):
-            self.ui.tableWidget.setItem(row, 0, tkinter.ttk.Treeview(device["ip"]))
-            self.ui.tableWidget.setItem(row, 1, tkinter.ttk.Treeview(device["mac"]))
-            self.ui.tableWidget.setItem(row, 2, tkinter.ttk.Treeview(device["vendor"]))
-
     def scan_complete(self):
         # Enable the reload data button when the scan is complete
         self.ui.reload_data_button.setEnabled(True)

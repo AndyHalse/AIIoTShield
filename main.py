@@ -1,94 +1,72 @@
 import logging
 import tkinter as tk
 from tkinter import messagebox
+import tkinter.ttk as ttk
 
-from device_detector import DeviceDetector
+from getmac import get_mac_address
 
+from device_detection import DeviceDetector
 from gui import Ui_IoTShield
 
 class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.geometry("800x600")
         self.title("AI Cyber IoT Shield")
-
-        # Create a menu bar
-        menubar = tk.Menu(self)
-        self.config(menu=menubar)
-
-        # Create a File menu
-        file_menu = tk.Menu(menubar)
-        menubar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="Exit", command=self.on_close)
-
-        # Create a Help menu
-        help_menu = tk.Menu(menubar)
-        menubar.add_cascade(label="Help", menu=help_menu)
-        help_menu.add_command(label="About", command=self.on_help_button_clicked)
-
-        # Create a Logs menu
-        logs_menu = tk.Menu(menubar)
-        menubar.add_cascade(label="Logs", menu=logs_menu)
-        logs_menu.add_command(label="Show Logs", command=self.on_logs_button_clicked)
-
-        # Create a main frame for the window
-        self.main_frame = tk.Frame(self)
+        self.geometry("800x600")
+        self.resizable(False, False)
+        
+        self.main_frame = ttk.Frame(self, padding=(5, 5, 5, 5))
         self.main_frame.pack(fill="both", expand=True)
 
-        # Create an instance of DeviceDetector and Ui_IoTShield
-        self.detector = DeviceDetector(user_agent="Mozilla/5.0")
-        self.ui = Ui_IoTShield(main_window=self, reload_data_func=self.reload_data)
-        self.ui.pack(side="top", fill="both", expand=True)
+        self.ui = Ui_IoTShield(self)  # Pass self as argument
+        self.ui.create_ui()
+        self.ui.create_buttons()
+        ...
 
-        print("Scanning for devices...")
-        self.update_device_table(self.detector.scan_devices())
+        self.ui.setupUi(self)
+        self.device_table = DeviceTable(self.ui.tableWidget)
+        self.detector = NetworkDetector()
+
+        self.ui.scan_button.config(command=self.start_scan)
+        self.ui.save_to_pdf_button.config(command=self.on_save_to_pdf_button_clicked)
+        self.ui.logs_button.config(command=self.on_logs_button_clicked)
+        self.ui.help_button.config(command=self.on_help_button_clicked)
+
+    def start_scan(self):
+        """
+        Start the network scan.
+        """
+        self.ui.message_label.config(text="Scanning...")
+        self.ui._button.config(state=tk.DISABLED)
+        self.detector.start_scan(self.update_device_table, self.scan_complete)
 
     def update_device_table(self, devices):
-        self.ui.device_table.delete(*self.ui.device_table.get_children())
-        for device in devices:
-            self.ui.device_table.insert("", "end", values=(
-                device["hostname"], device["ip"], device["mac"], device["device_type"], device["last_seen"]))
+        """
+        Update the table with the list of detected devices.
+        :param devices: The list of detected devices.
+        """
+        self.ui.message_label.config(text=f"Detected {len(devices)} devices")
+        self.device_table.update_table(devices)
 
-    # rest of the code stays the same
+    def scan_complete(self):
+        """
+        Called when the network scan is complete.
+        """
+        self.ui._button.config(state=tk.NORMAL)
 
-    def on_close(self):
-        try:
-            self.ui.destroy()
-        except tk.TclError:
-            pass
-        self.destroy()
-
-    def reload_data(self):
-        try:
-            self.ui.progressBar["value"] = 0
-            self.ui.header_label.config(text="Scanning for devices...")
-            self.ui.reload_data_button.config(state="disabled")
-            self.detector = DeviceDetector()
-            devices = self.detector.scan_devices()
-            self.update_device_table(devices)
-            self.ui.header_label.config(text="Data reloaded")
-            logging.info("Data reloaded successfully")
-            self.ui.reload_data_button.config(state="normal")
-        except Exception as e:
-            self.ui.header_label.config(text="Failed to reload data")
-            logging.error(f"Failed to reload data: {str(e)}")
-            messagebox.showerror("Error", f"Failed to reload data: {str(e)}")
-
-    def update_table(self, devices):
-        print(f"Found {len(devices)} devices.")
-        self.ui.tableWidget.delete(*self.ui.tableWidget.get_children())
-        for device in devices:
-            icon = DataProcessing.get_device_icon(device["device_type"])
-            self.ui.tableWidget.insert("", "end", values=(
-                device["ip"], device["mac"], device["hostname"], device["device_type"], device["last_seen"], icon))
-
-    def on_help_button_clicked(self):
-        messagebox.showinfo("Help", "This is the AI Cyber IoT Shield application. It automatically detects and identifies all LAN/WAN network devices, including IoT, IP CCTV cameras, routers, IP telephones, wireless mobiles, Amazon Echo devices, Apple Not devices, and any other wireless devices that could be vulnerable to outside hackers. The application displays IP address, device name, device type, device software/firmware version number, MAC address, CPU data, memory data, and any other relevant information.")
+    def on_save_to_pdf_button_clicked(self):
+        """
+        Called when the "Save to PDF" button is clicked.
+        """
+        # Implement functionality to save the table to a PDF file
+        pass
 
     def on_logs_button_clicked(self):
-        with open('app.log', 'r') as file:
-            logs = file.read()
-            messagebox.showinfo("Logs", logs)
+        """
+        Called when the "Logs" button is clicked.
+        """
+        # Implement functionality to show the log files
+        pass
 
 if __name__ == "__main__":
     main_window = MainWindow()

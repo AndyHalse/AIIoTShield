@@ -8,11 +8,11 @@ import tkinter
 import tkinter as tk
 import tkinter.ttk as ttk
 from concurrent.futures import ThreadPoolExecutor
-
-import nmap
-import psutil
 import requests
 from getmac import get_mac_address
+import nmap
+import ipaddress
+import psutil
 
 net_if_addrs = psutil.net_if_addrs()
 ip_list = []
@@ -30,9 +30,6 @@ for ip in ip_list:
 
 class DeviceDetector:
     def __init__(self, user_agent=None, timeout=1):
-        print("Initializing DeviceDetector")
-    # Rest of the __init__ method...
-
         self.user_agent = user_agent
         self.timeout = timeout
         self.network_prefixes = network_prefixes
@@ -53,7 +50,7 @@ class DeviceDetector:
     def get_device_info(self, ip):
         try:
             hostname = socket.gethostbyaddr(ip)[0]
-        except (socket.herror, socket.timeout, socket.gaierror):
+        except (socket.herror, socket.timeout):
             hostname = ""
 
         mac = self.get_mac_address(ip)
@@ -67,10 +64,9 @@ class DeviceDetector:
     def get_mac_address(self, ip):
         try:
             mac = get_mac_address(ip=ip, timeout=self.timeout)
-        except Exception:
+        except (getmac.GetMacAddressException, getmac.GetMacAddressNetworkException):
             mac = None
         return mac
-
 
     def get_device_type(self, mac):
         if mac is None:
