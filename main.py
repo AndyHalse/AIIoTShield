@@ -5,11 +5,12 @@ import tkinter.ttk as ttk
 import time
 from device import IoTDevice
 from iot_network import IoTNetwork
+from tkinter import messagebox
+from report_issue import report_issue
 from getmac import get_mac_address
-
+from vulnerability_detection import detect_vulnerability
 from device_detection import DeviceDetector
 from gui import Ui_IoTShield
-# main.py
 from settings import APP_NAME, APP_VERSION, MQTT_BROKER
 print(f"{APP_NAME} v{APP_VERSION} is connecting to MQTT broker at {MQTT_BROKER}")
 
@@ -75,7 +76,33 @@ class MainWindow(tk.Tk):
         # Implement functionality to show the log files
         pass
 
+while True:
+    for device in iot_network.devices.values():
+        if detect_vulnerability(device.device_id):
+            if not device.blocked:
+                print(f"Vulnerability detected! Blocking device {device.device_id}")
+                device.block_device()
+        else:
+            if device.blocked:
+                print(f"Vulnerability cleared! Unblocking device {device.device_id}")
+                device.unblock_device()
 
+    time.sleep(5)  # Check for vulnerabilities every 5 seconds (or adjust the interval as needed)
+
+def issue_detected():
+    # Replace this function with your own logic to detect issues
+    return True
+
+def prompt_approval():
+    root = tk.Tk()
+    root.withdraw()
+    approval = messagebox.askyesno("IoTShield", "IoTShield has detected a small issue. Please give authority to send this data.")
+    root.destroy()
+    return approval
+
+if issue_detected():
+    if prompt_approval():
+        report_issue()
 
 if __name__ == "__main__":
     main_window = MainWindow()
