@@ -2,11 +2,18 @@ import logging
 import tkinter as tk
 from tkinter import messagebox
 import tkinter.ttk as ttk
-
+import time
+from device import IoTDevice
+from iot_network import IoTNetwork
 from getmac import get_mac_address
 
 from device_detection import DeviceDetector
 from gui import Ui_IoTShield
+# main.py
+from settings import APP_NAME, APP_VERSION, MQTT_BROKER
+print(f"{APP_NAME} v{APP_VERSION} is connecting to MQTT broker at {MQTT_BROKER}")
+
+iot_network = IoTNetwork()
 
 class MainWindow(tk.Tk):
     def __init__(self):
@@ -18,7 +25,7 @@ class MainWindow(tk.Tk):
         self.main_frame = ttk.Frame(self, padding=(5, 5, 5, 5))
         self.main_frame.pack(fill="both", expand=True)
 
-        self.ui = Ui_IoTShield(self)  # Pass self as argument
+        self.ui = Ui_IoTShield(self.main_frame)  # Pass self.main_frame as argument
         self.ui.create_ui()
         self.ui.create_buttons()
         ...
@@ -67,6 +74,8 @@ class MainWindow(tk.Tk):
         """
         # Implement functionality to show the log files
         pass
+
+
 
 if __name__ == "__main__":
     main_window = MainWindow()

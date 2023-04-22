@@ -1,0 +1,8 @@
+// Cyber Essentials is a cybersecurity certification program
+// This file contains sample questions related to Cyber Essentials
+
+1. What are the five technical controls covered by Cyber Essentials?
+2. Why is it important for an organization to be Cyber Essentials certified?
+3. What is the difference between Cyber Essentials and Cyber Essentials Plus?
+4. How does patch management play a role in Cyber Essentials certification?
+5. What types of malware protection are recommended for Cyber Essentials compliance?

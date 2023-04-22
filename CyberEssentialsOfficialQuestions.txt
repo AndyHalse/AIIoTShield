@@ -1,0 +1,34 @@
+// Official Cyber Essentials Application Questions and Answers
+// The following are sample questions you may encounter in a Cyber Essentials application.
+
+Q1: Do you have a documented cybersecurity policy in place?
+A1: Yes/No
+
+Q2: Do you have a process to manage user access to systems and data?
+A2: Yes/No
+
+Q3: Do you have a process for removing access for users who no longer require it?
+A3: Yes/No
+
+Q4: Are your systems and devices protected by firewalls and/or equivalent network devices?
+A4: Yes/No
+
+Q5: Is your organization's wireless network secured with encryption and strong authentication?
+A5: Yes/No
+
+Q6: Are all default passwords changed before deploying any new devices or software?
+A6: Yes/No
+
+Q7: Is antivirus and anti-malware software installed and regularly updated on all devices?
+A7: Yes/No
+
+Q8: Are software and operating systems updated with the latest security patches?
+A8: Yes/No
+
+Q9: Do you have a process to monitor and address vulnerabilities in your systems and applications?
+A9: Yes/No
+
+Q10: Do you have a process for regularly backing up essential data?
+A10: Yes/No
+
+Please note that the actual Cyber Essentials application may contain additional or different questions. Consult the official documentation and guidelines for a complete understanding of the application process.

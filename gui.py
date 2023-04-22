@@ -9,11 +9,10 @@ color_swatch = {
     "quinary": "#9980d1"
 }
 
-class Ui_IoTShield(tk.Frame):
-    def __init__(self, main_window, reload_data_func=None):
-        super().__init__(main_window.main_frame)
+class Ui_IoTShield(ttk.Frame):
+    def __init__(self, main_window=None, reload_data_func=None):
+        super().__init__(main_window.main_frame) # Access main_frame attribute of MainWindow
         self.main_window = main_window
-        self.reload_data_func = reload_data_func
         ...
 
     def create_widgets(self):
@@ -45,14 +44,6 @@ class Ui_IoTShield(tk.Frame):
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=(
             "Arial", 12, "bold"), width=20, height=2)
-
-    def update_device_table(self, devices):
-        # Update the table with the list of detected devices
-        self.ui.message_label.config(text=f"Detected {len(devices)} devices")
-        self.ui.tableWidget.delete(*self.ui.tableWidget.get_children())
-        for row, device in enumerate(devices):
-            self.ui.tableWidget.insert("", "end", values=(
-                device["ip"], device["mac"], device["vendor"]))
 
     def scan_complete(self):
         # Enable the reload data button when the scan is complete
