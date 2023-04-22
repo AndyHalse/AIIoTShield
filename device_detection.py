@@ -8,33 +8,19 @@ import tkinter
 import tkinter as tk
 import tkinter.ttk as ttk
 from concurrent.futures import ThreadPoolExecutor
-from tkinter import *
-from tkinter import messagebox
-
-import nmap
-import psutil
 import requests
-from device_detector import DeviceDetector
 from getmac import get_mac_address
-from ping3 import ping
+import nmap
+import ipaddress
+import psutil
 
-from clustering import DeviceClustering
-from logging_setup import get_logger
-
-print(sys.path)
-
-logger = get_logger(__name__)
-# Get a list of all network interfaces
 net_if_addrs = psutil.net_if_addrs()
-
-# Get a list of IP addresses for each network interface
 ip_list = []
 for interface_name, interface_addresses in net_if_addrs.items():
     for address in interface_addresses:
         if address.family == socket.AF_INET:
             ip_list.append(address.address)
 
-# Create a list of all network prefixes
 network_prefixes = []
 for ip in ip_list:
     network_prefix = ipaddress.ip_network(ip, strict=False)
@@ -103,20 +89,6 @@ class DeviceDetector:
         else:
             return "Unknown"
 
-
-    def get_last_seen(self, ip):
-        """
-        Gets the last time a device with the given IP address was seen on the network.
-        """
-        nm = nmap.PortScanner()
-        nm.scan(hosts=ip, arguments='-sP')
-        hosts = nm.all_hosts()
-        if len(hosts) > 0:
-            host = hosts[0]
-            last_seen = nm[host]['lastboot']
-            return last_seen
-        else:
-            return "Unknown"
 
 
 class DeviceIcons:
