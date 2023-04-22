@@ -1,17 +1,19 @@
 import logging
-import tkinter as tk
-from tkinter import messagebox
-import tkinter.ttk as ttk
+import threading
 import time
-from device import IoTDevice
-from iot_network import IoTNetwork
+import tkinter as tk
+import tkinter.ttk as ttk
+
 from tkinter import messagebox
-from report_issue import report_issue
 from getmac import get_mac_address
-from vulnerability_detection import detect_vulnerability
+from device import IoTDevice
 from device_detection import DeviceDetector
 from gui import Ui_IoTShield
+from iot_network import IoTNetwork
+from report_issue import report_issue
 from settings import APP_NAME, APP_VERSION, MQTT_BROKER
+from vulnerability_detection import detect_vulnerability, run_vulnerability_check
+
 print(f"{APP_NAME} v{APP_VERSION} is connecting to MQTT broker at {MQTT_BROKER}")
 
 iot_network = IoTNetwork()
@@ -22,14 +24,13 @@ class MainWindow(tk.Tk):
         self.title("AI Cyber IoT Shield")
         self.geometry("800x600")
         self.resizable(False, False)
-        
+        self.start_vulnerability_check_thread()
         self.main_frame = ttk.Frame(self, padding=(5, 5, 5, 5))
         self.main_frame.pack(fill="both", expand=True)
 
         self.ui = Ui_IoTShield(self.main_frame)  # Pass self.main_frame as argument
         self.ui.create_ui()
         self.ui.create_buttons()
-        ...
 
         self.ui.setupUi(self)
         self.device_table = DeviceTable(self.ui.tableWidget)
@@ -40,69 +41,32 @@ class MainWindow(tk.Tk):
         self.ui.logs_button.config(command=self.on_logs_button_clicked)
         self.ui.help_button.config(command=self.on_help_button_clicked)
 
+    def start_vulnerability_check_thread(self):
+        vulnerability_check_thread = threading.Thread(target=run_vulnerability_check, daemon=True)
+        vulnerability_check_thread.start()
+
     def start_scan(self):
-        """
-        Start the network scan.
-        """
         self.ui.message_label.config(text="Scanning...")
         self.ui._button.config(state=tk.DISABLED)
         self.detector.start_scan(self.update_device_table, self.scan_complete)
 
     def update_device_table(self, devices):
-        """
-        Update the table with the list of detected devices.
-        :param devices: The list of detected devices.
-        """
         self.ui.message_label.config(text=f"Detected {len(devices)} devices")
         self.device_table.update_table(devices)
 
     def scan_complete(self):
-        """
-        Called when the network scan is complete.
-        """
         self.ui._button.config(state=tk.NORMAL)
 
     def on_save_to_pdf_button_clicked(self):
-        """
-        Called when the "Save to PDF" button is clicked.
-        """
-        # Implement functionality to save the table to a PDF file
         pass
 
     def on_logs_button_clicked(self):
-        """
-        Called when the "Logs" button is clicked.
-        """
-        # Implement functionality to show the log files
         pass
 
-while True:
-    for device in iot_network.devices.values():
-        if detect_vulnerability(device.device_id):
-            if not device.blocked:
-                print(f"Vulnerability detected! Blocking device {device.device_id}")
-                device.block_device()
-        else:
-            if device.blocked:
-                print(f"Vulnerability cleared! Unblocking device {device.device_id}")
-                device.unblock_device()
-
-    time.sleep(5)  # Check for vulnerabilities every 5 seconds (or adjust the interval as needed)
-
-def issue_detected():
-    # Replace this function with your own logic to detect issues
-    return True
-
-def prompt_approval():
-    root = tk.Tk()
-    root.withdraw()
-    approval = messagebox.askyesno("IoTShield", "IoTShield has detected a small issue. Please give authority to send this data.")
-    root.destroy()
-    return approval
-
-if issue_detected():
-    if prompt_approval():
-        report_issue()
+    # Add this method to handle the closing event
+    def on_close(self):
+        # Perform any necessary cleanup before closing the application
+        self.destroy()
 
 if __name__ == "__main__":
     main_window = MainWindow()
@@ -111,11 +75,9 @@ if __name__ == "__main__":
     main_window.resizable(False, False)
     main_window.protocol("WM_DELETE_WINDOW", main_window.on_close)
 
-    # Add a frame to the main window
     main_window.frame = tk.Frame(main_window)
     main_window.frame.pack(side="top", fill="both", expand=True)
 
-    # Create an instance of DeviceDetector and Ui_IoTShield
     main_window.detector = DeviceDetector(timeout=1)
 
     main_window.ui = Ui_IoTShield(
