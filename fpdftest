@@ -1,0 +1,7 @@
+# Generate a PDF:
+from fpdf import FPDF
+pdf = FPDF()
+pdf.add_page()
+pdf.set_font('helvetica', size=48)
+pdf.cell(txt="hello world")
+pdf_bytes = pdf.output()
