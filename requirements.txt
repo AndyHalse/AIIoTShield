@@ -16,3 +16,4 @@ multiprocessing
 socket
 fpdf
 Flask
+tkintertable

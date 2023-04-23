@@ -1,7 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkinter import Button, Frame, Label
-
+from tkintertable import TableCanvas, TableModel
 from color_swatch import color_swatch
 
 class Ui_IoTShield:
@@ -9,23 +8,35 @@ class Ui_IoTShield:
         self.main_window = main_window
         self.create_widgets()
 
+    def create_device_table(self, devices):
+        self.table_frame = tk.Frame(self.main_frame)
+        self.table_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        self.table = TableCanvas(self.table_frame, editable=False)
+        self.table.show()
+
+        self.update_device_table(devices)
+
+    def update_device_table(self, devices):
+        header = ["IP", "Hostname", "MAC Address", "Device Type", "Last Seen"]
+        data = {}
+        for index, device in enumerate(devices):
+            data[index] = {"IP": device["ip"], "Hostname": device["hostname"], "MAC Address": device["mac"], "Device Type": device["device_type"], "Last Seen": device["last_seen"]}
+
+        model = TableModel()
+        model.importDict(data)
+
+        self.table.setModel(model)
+        self.table.redrawTable()
+
     def create_widgets(self):
         self.main_frame = tk.Frame(self.main_window)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
-
-        self.create_ui()
         self.create_buttons()
-
-    def create_ui(self):
-        # Add widgets and configure the layout here
-        example_label = Label(self.main_frame, text="Example Label")
-        example_label.pack()
-
-        example_button = Button(self.main_frame, text="Example Button")
-        example_button.pack()
+        self.create_device_table([])
 
     def create_buttons(self):
-        # Create the buttons here
+    # Create the buttons here
         button_bar = tk.Frame(self.main_frame)
         button_bar.pack(side="bottom", fill="x", pady=10)
 
@@ -38,8 +49,10 @@ class Ui_IoTShield:
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=("Arial", 12, "bold"), width=20, height=2)
 
+
     def scan_devices(self):
-        # Add the code to scan devices here
+        self.main_window.scan_devices()
+
         print("Scanning devices...")
 
     def on_logs_button_clicked(self):
@@ -52,9 +65,9 @@ class Ui_IoTShield:
 
     def setup_ui(self):
         # Define the UI elements here
-        self.create_ui()
         self.create_buttons()
 
     def on_save_to_pdf_button_clicked(self):
         # Add the code to save the data to a PDF file here
         print("Saving to PDF...")
+

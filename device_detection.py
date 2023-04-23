@@ -13,32 +13,37 @@ import nmap
 import psutil
 import requests
 from getmac import get_mac_address
+import logging
 
-net_if_addrs = psutil.net_if_addrs()
-ip_list = []
-for interface_name, interface_addresses in net_if_addrs.items():
-    for address in interface_addresses:
-        if address.family == socket.AF_INET:
-            ip_list.append(address.address)
-
-network_prefixes = []
-for ip in ip_list:
-    network_prefix = ipaddress.ip_network(ip, strict=False)
-    network_prefixes.append(
-        str(network_prefix.network_address) + '/' + str(network_prefix.prefixlen))
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler()
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 class DeviceDetector:
     def __init__(self, user_agent=None, timeout=1):
         print("Initializing DeviceDetector")
-    # Rest of the __init__ method...
-
         self.user_agent = user_agent
         self.timeout = timeout
         self.network_prefixes = network_prefixes
         self.local_ip = requests.get('https://api.ipify.org').text
 
+    def show_loading_popup(self):
+        self.loading_popup = tkinter.Toplevel()
+        self.loading_popup.title("Scanning...")
+
+        loading_label = tkinter.Label(self.loading_popup, text="Please wait while scanning the network...")
+        loading_label.pack(padx=20, pady=20)
+
+        self.loading_popup.lift()
+        self.loading_popup.update()
+
     def scan_devices(self):
+        self.show_loading_popup()
+
         devices = []
         for prefix in self.network_prefixes:
             for host in range(1, 255):
@@ -48,6 +53,9 @@ class DeviceDetector:
                 device_info = self.get_device_info(ip)
                 if device_info is not None:
                     devices.append(device_info)
+
+        self.close_loading_popup()
+
         return devices
 
     def get_device_info(self, ip):
@@ -93,7 +101,8 @@ class DeviceDetector:
         else:
             return "Unknown"
 
-
+    def close_loading_popup(self):
+        self.loading_popup.destroy()
 
 class DeviceIcons:
     def __init__(self):
@@ -172,3 +181,11 @@ class NetworkScanThread(threading.Thread):
         device_type = self.get_device_type(mac)
         last_seen = self.get_last_seen(ip)
         return {"ip": ip, "hostname": hostname, "mac": mac, "device_type": device_type, "last_seen": last_seen}
+
+    def main():
+        detector = DeviceDetector()
+        devices = detector.scan_devices()
+        print(devices)
+
+if __name__ == "__main__":
+    main()
