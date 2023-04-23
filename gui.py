@@ -4,10 +4,10 @@ from tkinter import Button, Frame, Label
 
 from color_swatch import color_swatch
 
+
 class Ui_IoTShield:
     def __init__(self, main_window, parent=None):
         self.main_window = main_window
-        ...
 
         self.create_widgets()
 
@@ -22,7 +22,7 @@ class Ui_IoTShield:
         # Add widgets and configure the layout here
         example_label = Label(self.main_frame, text="Example Label")
         example_label.pack()
-        
+
         example_button = Button(self.main_frame, text="Example Button")
         example_button.pack()
 
@@ -45,29 +45,9 @@ class Ui_IoTShield:
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=(
             "Arial", 12, "bold"), width=20, height=2)
 
-    # The remaining methods in the Ui_IoTShield class
-
     def scan_devices(self):
         # Add the code to scan devices here
         print("Scanning devices...")
-
-    def scan_complete(self):
-        # Enable the reload data button when the scan is complete
-        self.ui.reload_data_button.config(state="normal")
-
-    def sort_column(self, tree, col, reverse):
-        """Sorts the treeview columns when header is clicked"""
-        l = [(tree.set(k, col), k) for k in tree.get_children('')]
-        try:
-            l.sort(key=lambda t: int(t[0]), reverse=reverse)
-        except ValueError:
-            l.sort(reverse=reverse)
-
-        for index, (val, k) in enumerate(l):
-            tree.move(k, '', index)
-
-        tree.heading(col, command=lambda: self.sort_column(
-            tree, col, not reverse))
 
     def on_save_to_pdf_button_clicked(self):
         # Add the code to save the data to a PDF file here
@@ -80,4 +60,6 @@ class Ui_IoTShield:
     def on_help_button_clicked(self):
         # Implement the functionality you want when the Help button is clicked
         print("Help button clicked")
+
+
         

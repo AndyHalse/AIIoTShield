@@ -28,10 +28,8 @@ class MainWindow(tk.Tk):
         self.main_frame = tk.Frame(self)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.ui = Ui_IoTShield(self, self.main_frame)
-
-        self.ui.create_ui()
-        self.ui.create_buttons()
+        self.ui = Ui_IoTShield(self)  # Pass the reference to the MainWindow instance
+        self.ui.setup_ui()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
