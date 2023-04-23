@@ -25,23 +25,18 @@ class Ui_IoTShield:
         example_button.pack()
 
     def create_buttons(self):
-        # Create the buttons here
+    # Create the buttons here
         button_bar = tk.Frame(self.main_frame)
         button_bar.pack(side="bottom", fill="x", pady=10)
 
-        ttk.Button(button_bar, text="Scan Devices", command=self.scan_devices,
-                   style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked,
-                   style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked,
-                   style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked,
-                   style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Scan Devices", command=self.scan_devices, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
         ttk.Button(button_bar, text="Exit", command=self.main_window.on_close, style="Cust.TButton").pack(side=tk.RIGHT, padx=5)
 
         self.style = ttk.Style()
-        self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=(
-            "Arial", 12, "bold"), width=20, height=2)
+        self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=("Arial", 12, "bold"), width=20, height=2)
 
     def scan_devices(self):
         # Add the code to scan devices here
