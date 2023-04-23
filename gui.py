@@ -4,11 +4,9 @@ from tkinter import Button, Frame, Label
 
 from color_swatch import color_swatch
 
-
 class Ui_IoTShield:
     def __init__(self, main_window, parent=None):
         self.main_window = main_window
-
         self.create_widgets()
 
     def create_widgets(self):
@@ -61,5 +59,9 @@ class Ui_IoTShield:
         # Implement the functionality you want when the Help button is clicked
         print("Help button clicked")
 
+    def setup_ui(self):
+        # Define the UI elements here
+        self.create_ui()
+        self.create_buttons()
 
         

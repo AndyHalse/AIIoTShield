@@ -1,13 +1,11 @@
+import logging
+import tkinter
 import tkinter as tk
+import tkinter.ttk as ttk
 from tkinter import *
 from tkinter import messagebox
-import tkinter.ttk as ttk
-import tkinter
 
-from gui_components import Ui_IoTShield
 from abuse_detection import AbuseDetector
-
-import logging
 
 
 class AIIoTShield(tkinter.Toplevel):
