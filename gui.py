@@ -49,7 +49,6 @@ class Ui_IoTShield:
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=("Arial", 12, "bold"), width=20, height=2)
 
-
     def scan_devices(self):
         self.main_window.scan_devices()
 

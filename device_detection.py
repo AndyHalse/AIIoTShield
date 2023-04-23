@@ -1,5 +1,6 @@
 import concurrent.futures
 import ipaddress
+import logging
 import socket
 import subprocess
 import sys
@@ -12,13 +13,14 @@ from concurrent.futures import ThreadPoolExecutor
 import nmap
 import psutil
 import requests
+from device_detector import DeviceDetector
 from getmac import get_mac_address
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
@@ -28,14 +30,14 @@ class DeviceDetector:
         print("Initializing DeviceDetector")
         self.user_agent = user_agent
         self.timeout = timeout
-        self.network_prefixes = network_prefixes
         self.local_ip = requests.get('https://api.ipify.org').text
 
     def show_loading_popup(self):
         self.loading_popup = tkinter.Toplevel()
         self.loading_popup.title("Scanning...")
 
-        loading_label = tkinter.Label(self.loading_popup, text="Please wait while scanning the network...")
+        loading_label = tkinter.Label(
+            self.loading_popup, text="Please wait while scanning the network...")
         loading_label.pack(padx=20, pady=20)
 
         self.loading_popup.lift()
@@ -44,15 +46,11 @@ class DeviceDetector:
     def scan_devices(self):
         self.show_loading_popup()
 
-        devices = []
-        for prefix in self.network_prefixes:
-            for host in range(1, 255):
-                ip = f"{prefix[:-3]}.{host}"
-                if ip == self.local_ip:
-                    continue
-                device_info = self.get_device_info(ip)
-                if device_info is not None:
-                    devices.append(device_info)
+        network_scan_thread = NetworkScanThread()
+        network_scan_thread.start()
+        network_scan_thread.join()
+
+        devices = network_scan_thread.devices
 
         self.close_loading_popup()
 
@@ -79,7 +77,6 @@ class DeviceDetector:
             mac = None
         return mac
 
-
     def get_device_type(self, mac):
         if mac is None:
             return ""
@@ -103,6 +100,7 @@ class DeviceDetector:
 
     def close_loading_popup(self):
         self.loading_popup.destroy()
+
 
 class DeviceIcons:
     def __init__(self):
@@ -148,25 +146,41 @@ class DeviceClustering:
 
 
 class NetworkScanThread(threading.Thread):
-    def __init__(self, network_prefixes):
+    def __init__(self):
         super().__init__()
-        self.network_prefixes = network_prefixes
         self.devices = []
         logger.debug("Initializing NetworkScanThread")
 
     def run(self):
         logger.debug("Starting NetworkScanThread")
 
-        for prefix in self.network_prefixes:
-            for host in range(1, 255):
-                ip = f"{prefix[:-3]}.{host}"
-                if ip == self.local_ip:
-                    continue
-                device_info = self.get_device_info(ip)
-                if device_info is not None:
-                    self.devices.append(device_info)
+        local_ip = self.get_local_ip_address()
+        network_prefix = self.get_network_prefix(local_ip)
+
+        for host in range(1, 255):
+            ip = f"{network_prefix}.{host}"
+            if ip == local_ip:
+                continue
+            device_info = self.get_device_info(ip)
+            if device_info is not None:
+                self.devices.append(device_info)
 
         logger.debug("NetworkScanThread finished")
+
+    def get_local_ip_address(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        except Exception as e:
+            logger.error(f"Error getting local IP address: {e}")
+            ip = "127.0.0.1"
+        finally:
+            s.close()
+        return ip
+
+    def get_network_prefix(self, local_ip):
+        return local_ip.rsplit(".", 1)[0]
 
     def get_device_info(self, ip):
         try:
@@ -189,3 +203,4 @@ class NetworkScanThread(threading.Thread):
 
 if __name__ == "__main__":
     main()
+

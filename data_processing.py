@@ -11,17 +11,6 @@ class DeviceProcessor:
         self.hostname = self.get_hostname()
         self.mac_address = self.get_mac_address()
 
-    def get_hostname(self):
-        try:
-            hostname = socket.getfqdn(self.ip)
-        except socket.herror:
-            hostname = ""
-        return hostname
-
-    def get_mac_address(self):
-        mac = get_mac_address(ip=self.ip)
-        return mac
-
     @staticmethod
     def get_os():
         return platform.system()
@@ -63,19 +52,3 @@ class DeviceProcessor:
             return "apple_icon.png"
         else:
             return "default_icon.png"
-
-    def get_device_type(self):
-        # Implement a function to determine the device type using the IP address
-        return "Unknown"
-
-class DataProcessing:
-    def get_local_network_prefixes(self, ip_address):
-        """
-        Given an IP address, returns a list of network prefixes associated with that IP.
-        """
-        ip_network = ipaddress.IPv4Network(f"{ip_address}/24", False)
-        return [{"prefix": str(ip_network), "start": str(ip_network[1]), "end": str(ip_network[-2])}]
-
-    @classmethod
-    def get_device_icon(cls, param):
-        pass

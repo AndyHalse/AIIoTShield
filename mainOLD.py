@@ -1,73 +1,39 @@
-import logging
-import os
-import socket
+import threading
 import tkinter as tk
-import sys
-from data_processing import DataProcessing
+import tkinter.ttk as ttk
+from tkinter import messagebox
+from getmac import get_mac_address
+from device import IoTDevice
 from device_detection import DeviceDetector
 from gui import Ui_IoTShield
-
-logging.basicConfig(filename='logs/iotshield.log', level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
-
-def on_log_button_clicked():
-    log_file_path = "./logs/iotshield.log"
-    os.system(f"open -a 'TextEdit' '{log_file_path}'")
-
-def on_exit_button_clicked():
-    sys.exit()
+from iot_network import IoTNetwork
+from report_issue import report_issue
 
 class MainWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("AI Cyber IoT Shield")
-        self.geometry("800x600")
+        self.geometry("1024x800")
+        self.resizable(False, False)
+        
+        self.main_frame = tk.Frame(self)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Add a frame to the main window
-        self.frame = tk.Frame(self)
-        self.frame.pack(side="top", fill="both", expand=True)
+        self.ui = Ui_IoTShield(self)  # Pass the reference to the MainWindow instance
+        self.ui.setup_ui()
 
-        # Create an instance of DeviceDetector and Ui_IoTShield
-        self.detector = DeviceDetector(
-            DataProcessing().get_local_network_prefixes(socket.gethostbyname(socket.gethostname())), timeout=1)
-        self.ui = Ui_IoTShield(main_window=self.frame, reload_data_func=self.reload_data)
-        self.ui.pack(side="top", fill="both", expand=True)
-        devices = self.detector.scan_devices()
-        self.update_table(devices)
-        self.ui.reload_data_button.config(command=self.reload_data)
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-    def on_plot_button_clicked(self):
+    def scan_devices(self):
+        detector = DeviceDetector()
+        devices = detector.scan_devices()
+        self.ui.update_device_table(devices)
 
-        # Implement this method to plot the data
-        pass
-
-    def reload_data(self):
-
-        try:
-            self.ui.progressBar["value"] = 0
-            self.ui.destroy()
-            self.ui = Ui_IoTShield(main_window=self, reload_data_func=self.reload_data)
-            ip_address = socket.gethostbyname(socket.gethostname())
-            self.detector = DeviceDetector(
-                DataProcessing().get_local_network_prefixes(socket.gethostbyname(socket.gethostname())), timeout=1)
-
-            devices = self.detector.scan_devices()
-            self.update_table(devices)
-            self.ui.header_label.config(text="Data reloaded")
-            logging.info("Data reloaded successfully")
-            self.ui.reload_data_button.config(command=self.reload_data)
-        except Exception as e:
-            self.ui.header_label.config(text="Failed to reload data")
-            logging.error(f"Failed to reload data: {str(e)}")
-
-    def update_table(self, devices):
-
-        self.ui.tableWidget.delete(*self.ui.tableWidget.get_children())
-        for device in devices:
-            icon = DataProcessing.get_device_icon(device["device_type"])
-            self.ui.tableWidget.insert("", "end", values=(
-            device["ip"], device["mac"], device["hostname"], device["device_type"], device["last_seen"], icon))
+    def on_close(self):
+        # Handle any cleanup tasks here
+        print("Closing the application...")
+        self.destroy()
 
 if __name__ == "__main__":
-    app = tk.Tk()
-    ui = MainWindow()
-    app.mainloop()
+    main_window = MainWindow()
+    main_window.mainloop()
