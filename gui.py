@@ -25,13 +25,13 @@ class Ui_IoTShield:
         example_button.pack()
 
     def create_buttons(self):
-    # Create the buttons here
+        # Create the buttons here
         button_bar = tk.Frame(self.main_frame)
         button_bar.pack(side="bottom", fill="x", pady=10)
 
         ttk.Button(button_bar, text="Scan Devices", command=self.scan_devices, style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
         ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
         ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left", padx=5)
         ttk.Button(button_bar, text="Exit", command=self.main_window.on_close, style="Cust.TButton").pack(side=tk.RIGHT, padx=5)
 
@@ -41,10 +41,6 @@ class Ui_IoTShield:
     def scan_devices(self):
         # Add the code to scan devices here
         print("Scanning devices...")
-
-    def on_save_to_pdf_button_clicked(self):
-        # Add the code to save the data to a PDF file here
-        print("Saving to PDF...")
 
     def on_logs_button_clicked(self):
         # Implement the functionality you want when the Logs button is clicked
@@ -59,4 +55,6 @@ class Ui_IoTShield:
         self.create_ui()
         self.create_buttons()
 
-        
+    def on_save_to_pdf_button_clicked(self):
+        # Add the code to save the data to a PDF file here
+        print("Saving to PDF...")
