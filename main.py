@@ -1,12 +1,13 @@
-import threading
 import tkinter as tk
-import tkinter.ttk as ttk
 from tkinter import messagebox
+
 from getmac import get_mac_address
+
 from device import IoTDevice
 from device_detection import DeviceDetector
 from gui import Ui_IoTShield
 from iot_network import IoTNetwork
+from pdf_report import generate_pdf
 from report_issue import report_issue
 
 class MainWindow(tk.Tk):
