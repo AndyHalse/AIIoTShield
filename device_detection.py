@@ -2,6 +2,8 @@ import concurrent.futures
 import ipaddress
 import logging
 import socket
+from datetime import datetime
+import netifaces
 import subprocess
 import sys
 import threading
@@ -9,12 +11,13 @@ import tkinter
 import tkinter as tk
 import tkinter.ttk as ttk
 from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
 
 import nmap
 import psutil
 import requests
-from device_detector import DeviceDetector
 from getmac import get_mac_address
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -24,51 +27,86 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-
 class DeviceDetector:
-    def __init__(self, user_agent=None, timeout=1):
+    
+    def __init__(self, user_agent=None, timeout=1, num_threads=5):
         print("Initializing DeviceDetector")
         self.user_agent = user_agent
         self.timeout = timeout
+        self.num_threads = num_threads
         self.local_ip = requests.get('https://api.ipify.org').text
-
+        self.loading_popup = None
+        
     def show_loading_popup(self):
-        self.loading_popup = tkinter.Toplevel()
-        self.loading_popup.title("Scanning...")
+        if self.loading_popup is None:
+            self.loading_popup = tkinter.Toplevel()
+            self.loading_popup.title("Scanning...")
 
-        loading_label = tkinter.Label(
-            self.loading_popup, text="Please wait while scanning the network...")
-        loading_label.pack(padx=20, pady=20)
+            loading_label = tkinter.Label(
+                self.loading_popup, text="Please wait while scanning the network...")
+            loading_label.pack(padx=20, pady=20)
 
         self.loading_popup.lift()
         self.loading_popup.update()
+    
+    def hide_loading_popup(self):
+        if self.loading_popup is not None:
+            self.loading_popup.destroy()
+            self.loading_popup = None
+    
+    def get_ip_range(self):
+        ip_data = get_ip_data() # Assuming you have a function to get the IP data
+        if not ip_data or 'netmask' not in ip_data[0]:
+            # Handle the case when the netmask key is not present in the dictionary
+            print("Error: Unable to get netmask information")
+            return None
+        else:
+            netmask = ip_data[0]['netmask']
+
+        # Extract the network address from the IP address and netmask
+        network_address = '.'.join(str(int(ip) & int(netmask.split('.')[i])) for i, ip in enumerate(ip_data[0]['addr'].split('.')))
+        
+        # Construct the IP range to scan by combining the network address and the host
+
+        
+        return ip_range
+
 
     def scan_devices(self):
-        self.show_loading_popup()
+        devices = []
+        ip_range = self.get_ip_range()
+        queue = Queue()
+        
+        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+            for ip in ip_range:
+                executor.submit(self.scan_device, ip, queue)
+                
+        while not queue.empty():
+            devices.append(queue.get())
+                
+        return devices
+    
 
-        network_scan_thread = NetworkScanThread()
-        network_scan_thread.start()
-        network_scan_thread.join()
+class IoTDevice:
+    def __init__(self, ip, mac, hostname, dns_data, port_data):
+        self.ip = ip
+        self.mac = mac
+        self.hostname = hostname
+        self.dns_data = dns_data
+        self.port_data = port_data
 
-        devices = network_scan_thread.devices
-
-        self.close_loading_popup()
+    def scan_devices(self):
+        devices = []
+        ip_range = self.get_ip_range()  # Assuming you have a method to get the IP range to scan
+        queue = Queue()
+        for _ in range(self.num_threads):
+            network_scan_thread = NetworkScanThread(ip_range, queue)
+            network_scan_thread.start()
+            network_scan_thread.join()
+            devices = network_scan_thread.devices
 
         return devices
 
-    def get_device_info(self, ip):
-        try:
-            hostname = socket.gethostbyaddr(ip)[0]
-        except (socket.herror, socket.timeout, socket.gaierror):
-            hostname = ""
-
-        mac = self.get_mac_address(ip)
-        if mac is None:
-            return None
-
-        device_type = self.get_device_type(mac)
-        last_seen = self.get_last_seen(ip)
-        return {"ip": ip, "hostname": hostname, "mac": mac, "device_type": device_type, "last_seen": last_seen}
 
     def get_mac_address(self, ip):
         try:
@@ -101,6 +139,20 @@ class DeviceDetector:
     def close_loading_popup(self):
         self.loading_popup.destroy()
 
+    def get_ip_range(self):
+        gateways = netifaces.gateways()
+        default_gateway = gateways.get('default', {}).get(netifaces.AF_INET, None)
+        if default_gateway:
+            iface = default_gateway[1]
+            for addr in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+                ip = addr['addr']
+                netmask = addr['netmask']
+                network = ipaddress.IPv4Network(f"{ip}/{netmask}", strict=False)
+                ip_range = [str(ip) for ip in network]
+                return ip_range
+        else:
+            raise ValueError("Could not find a default gateway to determine the IP range.")
+    
 
 class DeviceIcons:
     def __init__(self):
@@ -146,26 +198,19 @@ class DeviceClustering:
 
 
 class NetworkScanThread(threading.Thread):
-    def __init__(self):
-        super().__init__()
-        self.devices = []
-        logger.debug("Initializing NetworkScanThread")
+    def __init__(self, ip_range, queue):
+        threading.Thread.__init__(self)
+        self.ip_range = ip_range
+        self.queue = queue
 
     def run(self):
-        logger.debug("Starting NetworkScanThread")
-
-        local_ip = self.get_local_ip_address()
-        network_prefix = self.get_network_prefix(local_ip)
-
-        for host in range(1, 255):
-            ip = f"{network_prefix}.{host}"
-            if ip == local_ip:
-                continue
+        for ip in self.ip_range:
             device_info = self.get_device_info(ip)
-            if device_info is not None:
-                self.devices.append(device_info)
+            if device_info:
+                self.queue.put(device_info)
 
-        logger.debug("NetworkScanThread finished")
+    def get_mac_address(self, ip):
+        return get_mac_address(ip=ip)
 
     def get_local_ip_address(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -183,24 +228,34 @@ class NetworkScanThread(threading.Thread):
         return local_ip.rsplit(".", 1)[0]
 
     def get_device_info(self, ip):
-        try:
-            hostname = socket.gethostbyaddr(ip)[0]
-        except (socket.herror, socket.timeout):
-            hostname = ""
-
         mac = self.get_mac_address(ip)
-        if mac is None:
-            return None
+        if mac:
+            try:
+                hostname = socket.gethostbyaddr(ip)[0]
+                dns_data = {'http': f'http://{hostname}', 'https': f'https://{hostname}'}
+            except socket.herror:
+                hostname = None
+                dns_data = {}
 
-        device_type = self.get_device_type(mac)
-        last_seen = self.get_last_seen(ip)
-        return {"ip": ip, "hostname": hostname, "mac": mac, "device_type": device_type, "last_seen": last_seen}
+            port_data = []
+            for port in [80, 443]:  # Add any other ports you want to check
+                protocol = 'tcp'
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex((ip, port))
+                if result == 0:
+                    port_data.append({'port': port, 'state': 'open', 'protocol': protocol})
+                else:
+                    port_data.append({'port': port, 'state': 'closed', 'protocol': protocol})
+                sock.close()
 
-    def main():
-        detector = DeviceDetector()
-        devices = detector.scan_devices()
-        print(devices)
+            device = IoTDevice(ip, mac, hostname, dns_data, port_data)
+            return device
+
+def main():
+    detector = DeviceDetector()
+    devices = detector.scan_devices()
+    print(devices)
 
 if __name__ == "__main__":
     main()
-

@@ -17,3 +17,13 @@ socket
 fpdf
 Flask
 tkintertable
+python-socketio
+reportlab
+netifaces
+pip netifaces --no-cache-dir
+brew netifaces --no-cache-dir
+brew netifaces --no-cache-dir
+python3 install netifaces
+Brew install netifaces
+Python3 install netifaces
+pip install netifaces2
