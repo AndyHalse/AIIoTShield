@@ -2,18 +2,14 @@ import concurrent.futures
 import ipaddress
 import logging
 import socket
-import subprocess
-import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from queue import Queue
-
+import platform
 import netifaces
 import nmap
 import requests
 from getmac import get_mac_address
-from pysnmp.hlapi import *
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,14 +19,18 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-
 class DeviceDetector:
-    def __init__(self, user_agent=None, timeout=1, num_threads=5):
-        print("Initializing DeviceDetector")
-        self.user_agent = user_agent
+    def __init__(self, timeout, num_threads):
+        self.timeout = timeout
+        self.devices = []
+        self.os_name = platform.system()
+        self.os_version = platform.version()
+        self.machine_architecture = platform.machine()
+        self.processor_name = platform.processor()
+        self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
         self.timeout = timeout
         self.num_threads = num_threads
-        self.local_ip = requests.get('https://api.ipify.org').text
+
 
     def get_ip_range(self):
         try:
@@ -62,7 +62,6 @@ class DeviceDetector:
             ip_range = '.'.join(ip_parts)
             return ip_range
 
-
     def is_ip_reachable(self, ip):
         try:
             socket.setdefaulttimeout(1)
@@ -70,7 +69,7 @@ class DeviceDetector:
             return True
         except OSError:
             return False
-                
+
             return ip_range
 
     def scan_devices(self):
@@ -90,7 +89,7 @@ class DeviceDetector:
     def scan_device(self, ip):
         mac = self.get_mac_address(ip)
         device_manufacturer = self.get_device_manufacturer(mac)
-        device_type = self.get_device_type(device_manufacturer)        
+        device_type = self.get_device_type(device_manufacturer)
 
         last_seen = self.get_last_seen(ip)
         return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
@@ -101,8 +100,31 @@ class DeviceDetector:
         last_seen = self.get_last_seen(ip)
         return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
 
+    def get_mac_address(self, ip):
+        pass
+
+    def get_device_manufacturer(self, mac):
+        pass
+
+    def get_device_type(self, device_manufacturer):
+        pass
+
+    def get_last_seen(self, ip):
+        pass
+
+    def get_mac_address(self, ip):
+        pass
+
+    def get_device_type(self, mac):
+        pass
+
+    def get_last_seen(self, ip):
+        pass
+
+
 class IoTDevice:
     def __init__(self, ip, mac, hostname, dns_data, port_data):
+        self.num_threads = None
         self.ip = ip
         self.mac = mac
         self.hostname = hostname
@@ -121,16 +143,15 @@ class IoTDevice:
 
         return devices
 
-
-    def get_mac_address(self, ip):
+    def get_mac_address(self, ip, url=None):
         try:
             response = requests.get(url)
             vendor = response.text.strip()
         except:
             vendor = None
-            logger.error(f"Failed to retrieve vendor for MAC address {mac}.")
+            logger.error(f"Failed to retrieve vendor for MAC address {self.mac}.")
 
-        return mac
+        return self.mac
 
     def get_device_type(self, mac):
         if mac is None:
@@ -145,7 +166,6 @@ class IoTDevice:
                 vendor = None
                 logger.error(f"Failed to retrieve vendor for MAC address {mac}.")
 
-
             # Map the vendor name to a device type (you can modify or add to this dictionary as needed)
             device_types = {
                 "Apple": "Apple Device",
@@ -159,7 +179,7 @@ class IoTDevice:
             }
             device_type = device_types.get(vendor, "Unknown")
             return device_type
-    
+
     def get_device_manufacturer(self, mac):
         if mac is None:
             return ""
@@ -172,7 +192,7 @@ class IoTDevice:
             except:
                 vendor = None
             return vendor
-    
+
     def get_last_seen(self, ip):
         """
         Gets the last time a device with the given IP address was seen on the network.
@@ -201,7 +221,7 @@ class IoTDevice:
         else:
             raise ValueError("Could not find a default gateway to determine the IP range.")
 
-    
+
 class DeviceIcons:
     def __init__(self):
         self.device_icons = {
@@ -217,6 +237,7 @@ class DeviceIcons:
 
     def get_device_icon(self, device_type):
         return self.device_icons.get(device_type, "default_icon.png")
+
 
 class DeviceClustering:
     def __init__(self, devices):
@@ -245,6 +266,7 @@ class DeviceClustering:
 class NetworkScanThread(threading.Thread):
     def __init__(self, ip_range, queue):
         threading.Thread.__init__(self)
+        self.devices = None
         self.ip_range = ip_range
         self.queue = queue
 
@@ -302,7 +324,7 @@ class NetworkScanThread(threading.Thread):
             return device
 
 def main():
-    detector = DeviceDetector()
+    detector = DeviceDetector(timeout=1, num_threads=100)
     devices = detector.scan_devices()
     print(devices)
 

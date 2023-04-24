@@ -1,19 +1,12 @@
-import logging
 import tkinter
-import tkinter as tk
-import tkinter.ttk as ttk
-from tkinter import *
-from tkinter import messagebox
-from clustering import DeviceClustering
-from nmap import PortScanner
 
-from abuse_detection import AbuseDetector
+from clustering import DeviceClustering
 
 
 class AIIoTShield(tkinter.Toplevel):
     def __init__(self, main_window):
         self.setupUi(main_window)
-        
+
         # Create instances of the Detector and DeviceDetector classes
         self.detector = Detector()
         # Set up the UI
