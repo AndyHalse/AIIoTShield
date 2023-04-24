@@ -2,6 +2,8 @@ import concurrent.futures
 import ipaddress
 import logging
 import socket
+import subprocess
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -11,6 +13,7 @@ import netifaces
 import nmap
 import requests
 from getmac import get_mac_address
+from pysnmp.hlapi import *
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -28,24 +31,6 @@ class DeviceDetector:
         self.timeout = timeout
         self.num_threads = num_threads
         self.local_ip = requests.get('https://api.ipify.org').text
-        self.loading_popup = None
-
-    def show_loading_popup(self, tkinter=None):
-        if self.loading_popup is None:
-            self.loading_popup = tkinter.Toplevel()
-            self.loading_popup.title("Scanning...")
-
-            loading_label = tkinter.Label(
-                self.loading_popup, text="Please wait while scanning the network...")
-            loading_label.pack(padx=20, pady=20)
-
-        self.loading_popup.lift()
-        self.loading_popup.update()
-
-    def hide_loading_popup(self):
-        if self.loading_popup is not None:
-            self.loading_popup.destroy()
-            self.loading_popup = None
 
     def get_ip_range(self):
         try:
@@ -95,7 +80,7 @@ class DeviceDetector:
 
         with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
             for ip in ipaddress.IPv4Network(ip_range):
-                executor.submit(self.scan_device, ip, queue)
+                executor.submit(self.scan_device, self, ip, queue)
 
         while not queue.empty():
             devices.append(queue.get())
@@ -109,7 +94,6 @@ class DeviceDetector:
 
         last_seen = self.get_last_seen(ip)
         return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
-
 
     def get_device_info(self, ip):
         mac = self.get_mac_address(ip)
@@ -147,7 +131,6 @@ class IoTDevice:
             logger.error(f"Failed to retrieve vendor for MAC address {mac}.")
 
         return mac
-
 
     def get_device_type(self, mac):
         if mac is None:
@@ -204,9 +187,6 @@ class IoTDevice:
         else:
             return "Unknown"
 
-    def close_loading_popup(self):
-        self.loading_popup.destroy()
-
     def get_ip_range(self):
         gateways = netifaces.gateways()
         default_gateway = gateways.get('default', {}).get(netifaces.AF_INET, None)
@@ -220,6 +200,7 @@ class IoTDevice:
                 return ip_range
         else:
             raise ValueError("Could not find a default gateway to determine the IP range.")
+
     
 class DeviceIcons:
     def __init__(self):

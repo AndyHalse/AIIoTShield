@@ -5,6 +5,7 @@ import tkinter.ttk as ttk
 from tkinter import *
 from tkinter import messagebox
 from clustering import DeviceClustering
+from nmap import PortScanner
 
 from abuse_detection import AbuseDetector
 
