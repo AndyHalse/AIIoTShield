@@ -3,26 +3,59 @@ import tkinter.ttk as ttk
 from tkintertable import TableCanvas, TableModel
 from color_swatch import color_swatch
 import tkinter as tk
+import sys
+import os
 from PIL import Image, ImageTk
+from device_detector import DeviceDetector
+from device_clustering import DeviceClustering
+dir_path = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(dir_path, 'path/to/device_clustering'))
 
 class Ui_IoTShield:
-    _ui_ready = False
+    def __init__(self, master, main_window):
+        self.master = master
+        self.main_window = main_window
 
-    def __init__(self, parent):
-        self.parent = parent
+        # call create_widgets() method
+        self.create_buttons()
 
-    def setup_ui(self):
-        self.parent.tk.geometry("650x500")
-        self.parent.tk.config(bg="#EFF0F1")
+    def create_buttons(self):
+        # check if main_window object is None
+        if self.main_window is None:
+            print("main_window object is None")
+        else:
+            # create button widget with command=self.main_window.scan_devices
+            ttk.Button(button_bar, text="Scan Network", command=self.main_window.scan_devices, style="Cust.TButton").pack(side=tk.LEFT)
 
+        self.root = root
+        self.main_window = main_window
         self.create_widgets()
-
-        self.parent.tk.bind("<Configure>", self._resize_handler)
+        self.main_window = None
+        self.main_frame = tk.Frame(self.root)
+        self.main_window = None  # add this line to initialize main_window attribute
+        self.root.geometry("650x500")
+        self.root.config(bg="#EFF0F1")
+        self.create_buttons()
+        self.root.bind("<Configure>", self._resize_handler)
         self._ui_ready = True
 
     def create_widgets(self):
-        # create a main frame
-        self.main_frame = tk.Frame(self.parent.tk)
+        # Create a frame to hold the buttons
+        button_bar = ttk.Frame(self.root, padding=10)
+        button_bar.pack(fill=tk.X)
+
+        # Create a button to scan the network for devices
+        ttk.Button(button_bar, text="Scan Network", command=self.main_window.scan_devices).pack(side=tk.LEFT)
+
+    def scan_devices(self):
+        detector = DeviceDetector(timeout=1, num_threads=100)
+        devices = detector.scan_devices()
+        device_clustering = DeviceClustering(devices)
+        clusters = device_clustering.cluster_devices()
+        for device_type, device_list in clusters.items():
+            print(f"{device_type}: {len(device_list)} devices")
+        self.main_frame = tk.Frame(self.parent)
+
         self.main_frame.pack(side="top", fill="both", expand=True)
 
         # create a header frame
@@ -57,6 +90,31 @@ class Ui_IoTShield:
         image = Image.open("images/loading.gif")
         self.loading_gif = ImageTk.PhotoImage(image)
 
+        # initialize loading_popup attribute to None
+        self.loading_popup = None
+
+
+    def create_buttons(self):
+        # Add a button for each device type
+        button_bar = ttk.Frame(self.root)
+        button_bar.pack(side="top", fill="x")
+
+        for device_type in self.device_types:
+            device_type_icon = self.device_clustering.get_device_type_icon(device_type)
+            image = ImageTk.PhotoImage(Image.open(device_type_icon).resize((32, 32)))
+            button = ttk.Button(button_bar, text=device_type, image=image,
+                                compound="top", command=lambda dt=device_type: self.show_devices(dt))
+            button.image = image
+            button.pack(side="left", padx=10, pady=10)
+
+        # Add a button to refresh the device list
+        refresh_icon = "refresh_icon.png"
+        refresh_image = ImageTk.PhotoImage(Image.open(refresh_icon).resize((32, 32)))
+        refresh_button = ttk.Button(button_bar, text="Refresh", image=refresh_image, compound="top",
+                                    command=self.refresh_devices)
+        refresh_button.image = refresh_image
+        refresh_button.pack(side="right", padx=10, pady=10)
+
     def _resize_handler(self, event):
         if self._ui_ready:
             self.left_frame.config(width=int(event.width/3))
@@ -64,8 +122,11 @@ class Ui_IoTShield:
 
     def show_loading_popup(self):
         if self.loading_popup is not None:
-            # The popup is already displayed
             return
+        self.loading_popup = tk.Toplevel(self)
+        ...
+
+        return
 
         # Create a Toplevel widget for the popup
         self.loading_popup = tk.Toplevel(self.parent.tk)
@@ -83,8 +144,6 @@ class Ui_IoTShield:
         self.loading_popup.geometry("+{}+{}".format(x, y))
 
         # Update the window to ensure the Label is displayed
-        self.loading_popup.update_idletasks()
-
         self.loading_popup.update_idletasks()
 
     def hide_loading_popup(self):
@@ -145,10 +204,6 @@ class Ui_IoTShield:
     def on_help_button_clicked(self):
         # Implement the functionality you want when the Help button is clicked
         print("Help button clicked")
-
-    def setup_ui(self):
-        # Define the UI elements here
-        self.create_buttons()
 
     def on_save_to_pdf_button_clicked(self):
         # Add the code to save the data to a PDF file here

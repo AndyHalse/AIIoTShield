@@ -1,4 +1,6 @@
-import concurrent.futures
+import ipaddress
+import logging
+import socket
 import ipaddress
 import logging
 import socket
@@ -11,28 +13,27 @@ import nmap
 import requests
 from getmac import get_mac_address
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+
 
 class DeviceDetector:
     def __init__(self, timeout, num_threads):
         self.timeout = timeout
+        self.num_threads = num_threads
         self.devices = []
         self.os_name = platform.system()
         self.os_version = platform.version()
         self.machine_architecture = platform.machine()
         self.processor_name = platform.processor()
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36"
-        self.timeout = timeout
-        self.num_threads = num_threads
 
-
-    def get_ip_range(self):
+    def get_ip_range(self, concurrent=None):
         try:
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
@@ -70,56 +71,116 @@ class DeviceDetector:
         except OSError:
             return False
 
-            return ip_range
-
     def scan_devices(self):
-        devices = []
         ip_range = self.get_ip_range()
         queue = Queue()
 
         with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
             for ip in ipaddress.IPv4Network(ip_range):
-                executor.submit(self.scan_device, self, ip, queue)
+                executor.submit(self.scan_device, ip, queue)
 
+        devices = []
         while not queue.empty():
             devices.append(queue.get())
 
-        return devices
+        self.devices = devices
 
-    def scan_device(self, ip):
+    def scan_device(self, ip, queue):
         mac = self.get_mac_address(ip)
         device_manufacturer = self.get_device_manufacturer(mac)
         device_type = self.get_device_type(device_manufacturer)
 
         last_seen = self.get_last_seen(ip)
-        return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
+        device_info = {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
+        queue.put(device_info)
+
 
     def get_device_info(self, ip):
         mac = self.get_mac_address(ip)
-        device_type = self.get_device_type(mac)
+        device_manufacturer = self.get_device_manufacturer(mac)
+        device_type = self.get_device_type(device_manufacturer)
         last_seen = self.get_last_seen(ip)
         return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
 
     def get_mac_address(self, ip):
-        pass
 
-    def get_device_manufacturer(self, mac):
-        pass
+        if self.os_name == 'Windows':
+            return self.get_mac_address_windows(ip)
+        elif self.os_name == 'Linux':
+            return self.get_mac_address_linux(ip)
+        else:
+            return None
+
+    def get_mac_address_windows(self, ip, subprocess=None, re=None):
+        """
+        Returns the MAC address of the device with the given IP address on Windows.
+        """
+        command = f"arp -a {ip}"
+        output = subprocess.check_output(command, shell=True).decode("utf-8")
+        mac_address = re.search(r"(([0-9A-Fa-f]{2}-){5}[0-9A-Fa-f]{2})", output)
+        if mac_address:
+            return mac_address.group(0)
+        else:
+            return None
+
+    def get_mac_address_linux(self, ip, subprocess=None, re=None):
+        """
+        Returns the MAC address of the device with the given IP address on Linux.
+        """
+        command = f"arp {ip}"
+        output = subprocess.check_output(command, shell=True).decode("utf-8")
+        mac_address = re.search(r"(([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2})", output)
+        if mac_address:
+            return mac_address.group(0)
+        else:
+            return None
+
+    def get_device_manufacturer(self, mac, re=None, urllib=None):
+        """
+        Returns the manufacturer of the device with the given MAC address.
+        """
+        if mac is None:
+            return None
+
+        # Get the first 3 octets of the MAC address
+        mac_prefix = mac.split(':')[0] + ':' + mac.split(':')[1] + ':' + mac.split(':')[2]
+
+        # Load the OUI data from the IEEE website
+        try:
+            with urllib.request.urlopen("http://standards-oui.ieee.org/oui.txt") as response:
+                html = response.read().decode('utf-8')
+                oui_list = re.findall(r"([0-9A-Fa-f]{2}-[0-9A-Fa-f]{2}-[0-9A-Fa-f]{2})\s+\(hex\)\s+(.+)", html)
+                oui_dict = {key: value for key, value in oui_list}
+        except:
+            # Handle situation where OUI data cannot be retrieved
+            return None
+
+        # Find the manufacturer for the given MAC prefix
+        manufacturer = oui_dict.get(mac_prefix)
+        return manufacturer
 
     def get_device_type(self, device_manufacturer):
-        pass
+        """
+        Returns the type of device based on the manufacturer.
+        """
+        if device_manufacturer is None:
+            return None
 
-    def get_last_seen(self, ip):
-        pass
+        device_type_dict = {
+            'Apple, Inc.': 'iPhone',
+            'Samsung Electronics Co.': 'Samsung Galaxy',
+            'Xiaomi Communications Co.': 'Xiaomi Phone',
+            'Huawei Technologies Co.': 'Huawei Phone',
+            'Microsoft Corporation': 'Microsoft Surface',
+            'Dell Inc.': 'Dell Computer',
+            'Hewlett Packard': 'HP Computer'
+        }
 
-    def get_mac_address(self, ip):
-        pass
+        for key in device_type_dict:
+            if key in device_manufacturer:
+                return device_type_dict[key]
 
-    def get_device_type(self, mac):
-        pass
-
-    def get_last_seen(self, ip):
-        pass
+        return None
 
 
 class IoTDevice:
@@ -296,37 +357,19 @@ class NetworkScanThread(threading.Thread):
 
     def get_device_info(self, ip):
         mac = self.get_mac_address(ip)
-        if mac:
-            try:
-                hostname = socket.gethostbyaddr(ip)[0]
-                dns_data = {'http': f'http://{hostname}', 'https': f'https://{hostname}'}
-            except socket.herror:
-                hostname = None
-                dns_data = {}
+        device_manufacturer = self.get_device_manufacturer(mac)
+        device_type = self.get_device_type(device_manufacturer)
+        last_seen = self.get_last_seen(ip)
+        return {'ip': ip, 'mac': mac, 'device_type': device_type, 'last_seen': last_seen}
 
-            port_data = []
-            for port in [80, 443]:  # Add any other ports you want to check
-                protocol = 'tcp'
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(1)
-                try:
-                    result = sock.connect_ex((ip, port))
-                except Exception as e:
-                    result = None
-                    logger.error(f"Error scanning port {port} on IP {ip}: {e}")
-                if result == 0:
-                    port_data.append({'port': port, 'state': 'open', 'protocol': protocol})
-                else:
-                    port_data.append({'port': port, 'state': 'closed', 'protocol': protocol})
-                sock.close()
+    def get_mac_address(self, ip):
+        pass
 
-            device = IoTDevice(ip, mac, hostname, dns_data, port_data)
-            return device
+    def get_device_manufacturer(self, mac):
+        pass
 
-def main():
-    detector = DeviceDetector(timeout=1, num_threads=100)
-    devices = detector.scan_devices()
-    print(devices)
+    def get_device_type(self, device_manufacturer):
+        pass
 
-if __name__ == "__main__":
-    main()
+    def get_last_seen(self, ip):
+        pass
