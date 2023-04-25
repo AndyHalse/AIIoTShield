@@ -1,18 +1,18 @@
 import ipaddress
 import logging
-import socket
-import ipaddress
-import logging
+import platform
 import socket
 import threading
+import tkinter as tk
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-import platform
+
 import netifaces
 import nmap
 import requests
 from getmac import get_mac_address
 
+from device_clustering import DeviceClustering
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,11 +22,13 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-class DeviceDetector:
-    def __init__(self, timeout, num_threads):
+class DeviceDetector(tk.Frame):
+    def __init__(self, parent):
+        tk.Frame.__init__(self, parent)
         self.timeout = timeout
         self.num_threads = num_threads
-        self.devices = []
+        self.devices_table = tk.Frame(self)
+        self.devices_table.pack(side="top", fill="both", expand=True)
         self.os_name = platform.system()
         self.os_version = platform.version()
         self.machine_architecture = platform.machine()
@@ -71,19 +73,20 @@ class DeviceDetector:
         except OSError:
             return False
 
+
     def scan_devices(self):
-        ip_range = self.get_ip_range()
-        queue = Queue()
-
-        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
-            for ip in ipaddress.IPv4Network(ip_range):
-                executor.submit(self.scan_device, ip, queue)
-
+        # Scan the network for devices
         devices = []
-        while not queue.empty():
-            devices.append(queue.get())
 
-        self.devices = devices
+        # Add devices to the table
+        for i, device in enumerate(devices):
+            device_name_label = tk.Label(self.devices_table, text=device["name"])
+            device_name_label.grid(row=i, column=0, sticky="W")
+
+            device_ip_label = tk.Label(self.devices_table, text=device["ip"])
+            device_ip_label.grid(row=i, column=1, sticky="W")
+
+        return devices
 
     def scan_device(self, ip, queue):
         mac = self.get_mac_address(ip)
@@ -326,13 +329,13 @@ class DeviceClustering:
 class NetworkScanner:
     def __init__(self):
         self.nm = nmap.PortScanner()
-
+        pass
     def scan_devices(self):
         self.nm.scan(hosts='192.168.1.0/24', arguments='-n -sP -PE -PA21,23,80,3389')
         hosts = [(x, self.nm[x]['status']['state']) for x in self.nm.all_hosts()]
         for host, status in hosts:
             print(f"{host}: {status}")
-
+        pass
 
 class NetworkScanThread(threading.Thread):
     def __init__(self, ip_range, queue):

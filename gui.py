@@ -1,49 +1,59 @@
+import os
+import sys
 import tkinter as tk
 import tkinter.ttk as ttk
-from tkintertable import TableCanvas, TableModel
-from color_swatch import color_swatch
-import sys
-import os
-from PIL import Image, ImageTk
+from tkinter import ttk
+
 from device_detector import DeviceDetector
+from PIL import Image, ImageTk
+from tkintertable import TableCanvas, TableModel
+
+from color_swatch import color_swatch
 from device_clustering import DeviceClustering
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(dir_path, 'path/to/device_clustering'))
+
 
 class Ui_IoTShield:
-    def __init__(self, master, controller):
-        self.master = master
-        self.controller = controller
-        self.master.title("AI IoT Shield")
-        self.master.geometry("800x600")
-        self.master.config(bg="white")
+    def __init__(self, root, device_detector):
+        self.root = root
+        self.device_detector = device_detector
+        self.device_detector.place(x=10, y=10, width=820, height=100)
+        self.ui.place(x=10, y=120, width=820, height=650)
 
-        self.main_frame = tk.Frame(self.master)
+        self.scan_button = ttk.Button(self.root, text="Scan devices", command=self.device_detector.scan_devices)
+        self.scan_button.grid(row=1, column=0, padx=10, pady=10)
+        self.create_widgets()
+        self.root.title("AI IoT Shield")
+        self.root.geometry("840x780")
+
+        self.root.config(bg="white")
+        self.main_frame = tk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
-
         self.create_buttons()
         self.create_listbox()
         self.create_labels()
         self.create_entry_fields()
 
+
     def create_buttons(self):
-        button_bar = tk.Frame(self.window, bg="#e0e0e0")
+        button_bar = tk.Frame(self.root, bg="#e0e0e0")
         button_bar.pack(fill="x", pady=5, padx=5)
 
-        ttk.Button(button_bar, text="Scan Network", command=self.controller.scan_devices, style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Exit", command=self.controller.on_close, style="Cust.TButton").pack(side="right", padx=5)
+        ttk.Button(button_bar, text="Scan Network", command=self.device_detector.scan_devices, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Exit", command=self.device_detector.on_close, style="Cust.TButton").pack(side="right", padx=5)
 
-        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left",
+        ttk.Button(button_bar, text="Logs", command=self.device_detector.on_logs_button_clicked, style="Cust.TButton").pack(side="left",
                                                                                                             padx=5)
-        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked,
+        ttk.Button(button_bar, text="Save to PDF", command=self.device_detector.on_save_to_pdf_button_clicked,
                    style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left",
+        ttk.Button(button_bar, text="Help", command=self.device_detector.on_help_button_clicked, style="Cust.TButton").pack(side="left",
                                                                                                             padx=5)
 
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"],
                              font=("Arial", 12, "bold"), width=20, height=2)
+
 
     def block_device(self):
         selected_device = self.device_listbox.curselection()
@@ -56,13 +66,81 @@ class Ui_IoTShield:
     def clear_list(self):
         self.device_listbox.delete(0, tk.END)
 
+
     def create_widgets(self):
-        # Create a frame to hold the buttons
-        button_bar = ttk.Frame(self.root, padding=10)
-        button_bar.pack(fill=tk.X)
+        self.scan_button = ttk.Button(self.root, text="Scan devices", command=self.device_detector.scan_devices)
+        self.scan_button.place()
+        self.device_listbox = tk.Listbox(self.root)
+        self.device_listbox.place()
+        self.frame_1.place(x=10, y=10, width=400, height=400)
+        self.frame_2.place(x=420, y=10, width=400, height=400)
+        self.frame_3.place(x=10, y=420, width=810, height=350)
 
         # Create a button to scan the network for devices
-        ttk.Button(button_bar, text="Scan Network", command=self.network.scan_devices).pack(side=tk.LEFT)
+        button_bar = tk.Frame(self.root, bg="#e0e0e0")
+        button_bar.pack(fill="x", pady=5, padx=5)
+        ttk.Button(button_bar, text="Scan Network", command=self.device_detector.scan_devices, style="Cust.TButton").pack(side=tk.LEFT)
+        ttk.Button(button_bar, text="Exit", command=self.device_detector.on_close, style="Cust.TButton").pack(side=tk.RIGHT)
+        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked, style="Cust.TButton").pack(side=tk.LEFT, padx=5)
+        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side=tk.LEFT, padx=5)
+
+        self.style = ttk.Style()
+        self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"], font=("Arial", 12, "bold"), width=20, height=2)
+
+    def on_logs_button_clicked(self):
+        # Implement the functionality you want when the Logs button is clicked
+        # Show a sample logs message as a pop-up. Replace this with your actual logs.
+        showinfo(title="Logs", message="Sample logs message...")
+
+    def on_help_button_clicked(self):
+        # Implement the functionality you want when the Help button is clicked
+        # Show a sample help message as a pop-up. Replace this with your actual help content.
+        showinfo(title="Help", message="Help message: \n1. Scan Network: Scans the network for devices.\n2. Save to PDF: Save the device list to a PDF file.")
+
+    def on_save_to_pdf_button_clicked(self):
+        # Add the code to save the data to a PDF file here
+        print("Saving to PDF...")
+
+        # Sample data to be saved as PDF. Replace this with the actual device list from the table.
+        devices = [
+            {"IP": "192.168.0.1", "Hostname": "router", "MAC Address": "00:11:22:33:44:55", "Device Type": "Router", "Last Seen": "2023-04-25 10:00:00"},
+            {"IP": "192.168.0.2", "Hostname": "laptop", "MAC Address": "00:11:22:33:44:56", "Device Type": "Laptop", "Last Seen": "2023-04-25 10:05:00"}
+        ]
+
+        pdf_file = "device_list.pdf"
+        pdf_document = canvas.Canvas(pdf_file, pagesize=letter)
+        pdf_document.setTitle("Device List")
+
+        pdf_document.setFont("Helvetica-Bold", 16)
+        pdf_document.drawString(50, 750, "Device List")
+
+        pdf_document.setFont("Helvetica", 12)
+        header = ["IP", "Hostname", "MAC Address", "Device Type", "Last Seen"]
+        y_position = 700
+        x_position = 50
+
+        for index, field in enumerate(header):
+            pdf_document.drawString(x_position + index * 120, y_position, field)
+
+        y_position -= 20
+
+        for device in devices:
+            for index, field in enumerate(header):
+                pdf_document.drawString(x_position + index * 120, y_position, str(device[field]))
+            y_position -= 20
+
+        pdf_document.save()
+        print(f"Saved device list to {pdf_file}")
+
+    def scan_devices(self):
+        devices = self.device_detector.detect_devices()
+        self.ui.device_listbox.delete(0, tk.END)
+        for device in devices:
+            self.ui.device_listbox.insert(tk.END, device.ip)
+
+    # Add other methods here as needed
+
 
     def scan_devices(self):
         detector = DeviceDetector(timeout=1, num_threads=100)
@@ -109,6 +187,13 @@ class Ui_IoTShield:
 
         # initialize loading_popup attribute to None
         self.loading_popup = None
+
+    def update_device_list(self, clusters):
+        self.device_list.delete(0, tk.END)
+        for i, cluster in enumerate(clusters):
+            self.device_list.insert(tk.END, f"Cluster {i + 1}:")
+            for device in cluster:
+                self.device_list.insert(tk.END, f"  - {device['ip']} ({device['hostname']})")
 
     def _resize_handler(self, event):
         if self._ui_ready:

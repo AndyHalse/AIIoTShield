@@ -1,6 +1,7 @@
 from flask import Flask, render_template
 
-from device_detection import DeviceDetector
+from device_detector import DeviceDetector
+from device_clustering import DeviceClustering
 
 # Replace the network_prefixes list with your actual network prefixes
 network_prefixes = [
