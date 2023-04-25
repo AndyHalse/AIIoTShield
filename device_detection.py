@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import platform
 import netifaces
-import nmap
+
 import requests
 from getmac import get_mac_address
 
