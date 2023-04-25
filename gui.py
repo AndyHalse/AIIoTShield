@@ -28,20 +28,18 @@ class Ui_IoTShield:
         self.create_entry_fields()
 
     def create_buttons(self):
-        # Create the buttons here
-        button_bar = tk.Frame(self.main_frame)
-        button_bar.pack(side="bottom", fill="x", pady=10)
+        button_bar = tk.Frame(self.window, bg="#e0e0e0")
+        button_bar.pack(fill="x", pady=5, padx=5)
 
-        ttk.Button(button_bar, text="Scan Network", command=self.controller.scan_devices, style="Cust.TButton").pack(
-            side="left", padx=5)
+        ttk.Button(button_bar, text="Scan Network", command=self.controller.scan_devices, style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Exit", command=self.controller.on_close, style="Cust.TButton").pack(side="right", padx=5)
+
         ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left",
                                                                                                             padx=5)
         ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked,
                    style="Cust.TButton").pack(side="left", padx=5)
         ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left",
                                                                                                             padx=5)
-        ttk.Button(button_bar, text="Exit", command=self.window.on_close, style="Cust.TButton").pack(side="right",
-                                                                                                          padx=5)
 
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"],
@@ -173,12 +171,46 @@ class Ui_IoTShield:
 
     def on_logs_button_clicked(self):
         # Implement the functionality you want when the Logs button is clicked
-        print("Logs button clicked")
+        # Show a sample logs message as a pop-up. Replace this with your actual logs.
+        showinfo(title="Logs", message="Sample logs message...")
 
     def on_help_button_clicked(self):
         # Implement the functionality you want when the Help button is clicked
-        print("Help button clicked")
+        # Show a sample help message as a pop-up. Replace this with your actual help content.
+        showinfo(title="Help", message="Help message: \n1. Scan Network: Scans the network for devices.\n2. Save to PDF: Save the device list to a PDF file.")
 
     def on_save_to_pdf_button_clicked(self):
         # Add the code to save the data to a PDF file here
         print("Saving to PDF...")
+
+        # Sample data to be saved as PDF. Replace this with the actual device list from the table.
+        devices = [
+            {"IP": "192.168.0.1", "Hostname": "router", "MAC Address": "00:11:22:33:44:55", "Device Type": "Router", "Last Seen": "2023-04-25 10:00:00"},
+            {"IP": "192.168.0.2", "Hostname": "laptop", "MAC Address": "00:11:22:33:44:56", "Device Type": "Laptop", "Last Seen": "2023-04-25 10:05:00"}
+        ]
+
+        pdf_file = "device_list.pdf"
+        pdf_document = canvas.Canvas(pdf_file, pagesize=letter)
+        pdf_document.setTitle("Device List")
+
+        pdf_document.setFont("Helvetica-Bold", 16)
+        pdf_document.drawString(50, 750, "Device List")
+
+        pdf_document.setFont("Helvetica", 12)
+        header = ["IP", "Hostname", "MAC Address", "Device Type", "Last Seen"]
+        y_position = 700
+        x_position = 50
+
+        for index, field in enumerate(header):
+            pdf_document.drawString(x_position + index * 120, y_position, field)
+
+        y_position -= 20
+
+        for device in devices:
+            for index, field in enumerate(header):
+                pdf_document.drawString(x_position + index * 120, y_position, str(device[field]))
+            y_position -= 20
+
+        pdf_document.save()
+        print(f"Saved device list to {pdf_file}")
+

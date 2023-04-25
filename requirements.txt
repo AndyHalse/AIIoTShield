@@ -27,3 +27,7 @@ python3 install netifaces
 Brew install netifaces
 Python3 install netifaces
 pip install netifaces2
+pip install pysnmp
+pip install reportlab.
+
+
