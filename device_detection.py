@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 import platform
 import netifaces
-
+import nmap
 import requests
 from getmac import get_mac_address
 
@@ -322,6 +322,16 @@ class DeviceClustering:
             device_type = device["device_type"]
             clusters[device_type].append(device)
         return clusters
+
+class NetworkScanner:
+    def __init__(self):
+        self.nm = nmap.PortScanner()
+
+    def scan_devices(self):
+        self.nm.scan(hosts='192.168.1.0/24', arguments='-n -sP -PE -PA21,23,80,3389')
+        hosts = [(x, self.nm[x]['status']['state']) for x in self.nm.all_hosts()]
+        for host, status in hosts:
+            print(f"{host}: {status}")
 
 
 class NetworkScanThread(threading.Thread):

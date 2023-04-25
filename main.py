@@ -6,8 +6,9 @@ from device_clustering import DeviceClustering
 class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
-        self.ui = Ui_IoTShield(self.root, self)
-        self.root.mainloop()
+        self.root.title("AI Cyber IoT Shield")
+        self.network = NetworkScanner()
+        self.ui = Ui_IoTShield(self.root, self, self.network)
 
     def scan_devices(self):
         print("Scanning devices...")
