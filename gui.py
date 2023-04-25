@@ -2,42 +2,61 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkintertable import TableCanvas, TableModel
 from color_swatch import color_swatch
-import tkinter as tk
 import sys
 import os
 from PIL import Image, ImageTk
 from device_detector import DeviceDetector
 from device_clustering import DeviceClustering
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(dir_path, 'path/to/device_clustering'))
 
 class Ui_IoTShield:
-    def __init__(self, master, main_window):
+    def __init__(self, master, controller):
         self.master = master
-        self.main_window = main_window
+        self.controller = controller
+        self.master.title("AI IoT Shield")
+        self.master.geometry("800x600")
+        self.master.config(bg="white")
 
-        # call create_widgets() method
+        self.main_frame = tk.Frame(self.master)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+
         self.create_buttons()
+        self.create_listbox()
+        self.create_labels()
+        self.create_entry_fields()
 
     def create_buttons(self):
-        # check if main_window object is None
-        if self.main_window is None:
-            print("main_window object is None")
-        else:
-            # create button widget with command=self.main_window.scan_devices
-            ttk.Button(button_bar, text="Scan Network", command=self.main_window.scan_devices, style="Cust.TButton").pack(side=tk.LEFT)
+        # Create the buttons here
+        button_bar = tk.Frame(self.main_frame)
+        button_bar.pack(side="bottom", fill="x", pady=10)
 
-        self.root = root
-        self.main_window = main_window
-        self.create_widgets()
-        self.main_window = None
-        self.main_frame = tk.Frame(self.root)
-        self.main_window = None  # add this line to initialize main_window attribute
-        self.root.geometry("650x500")
-        self.root.config(bg="#EFF0F1")
-        self.create_buttons()
-        self.root.bind("<Configure>", self._resize_handler)
-        self._ui_ready = True
+        ttk.Button(button_bar, text="Scan Network", command=self.controller.scan_devices, style="Cust.TButton").pack(
+            side="left", padx=5)
+        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left",
+                                                                                                            padx=5)
+        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked,
+                   style="Cust.TButton").pack(side="left", padx=5)
+        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left",
+                                                                                                            padx=5)
+        ttk.Button(button_bar, text="Exit", command=self.window.on_close, style="Cust.TButton").pack(side="right",
+                                                                                                          padx=5)
+
+        self.style = ttk.Style()
+        self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"],
+                             font=("Arial", 12, "bold"), width=20, height=2)
+
+    def block_device(self):
+        selected_device = self.device_listbox.curselection()
+        if selected_device:
+            device = self.device_listbox.get(selected_device[0])
+            # Add your logic to block the device here
+            print(f"Blocking device: {device}")
+            self.device_listbox.delete(selected_device[0])
+
+    def clear_list(self):
+        self.device_listbox.delete(0, tk.END)
 
     def create_widgets(self):
         # Create a frame to hold the buttons
@@ -45,7 +64,7 @@ class Ui_IoTShield:
         button_bar.pack(fill=tk.X)
 
         # Create a button to scan the network for devices
-        ttk.Button(button_bar, text="Scan Network", command=self.main_window.scan_devices).pack(side=tk.LEFT)
+        ttk.Button(button_bar, text="Scan Network", command=self.network.scan_devices).pack(side=tk.LEFT)
 
     def scan_devices(self):
         detector = DeviceDetector(timeout=1, num_threads=100)
@@ -93,28 +112,6 @@ class Ui_IoTShield:
         # initialize loading_popup attribute to None
         self.loading_popup = None
 
-
-    def create_buttons(self):
-        # Add a button for each device type
-        button_bar = ttk.Frame(self.root)
-        button_bar.pack(side="top", fill="x")
-
-        for device_type in self.device_types:
-            device_type_icon = self.device_clustering.get_device_type_icon(device_type)
-            image = ImageTk.PhotoImage(Image.open(device_type_icon).resize((32, 32)))
-            button = ttk.Button(button_bar, text=device_type, image=image,
-                                compound="top", command=lambda dt=device_type: self.show_devices(dt))
-            button.image = image
-            button.pack(side="left", padx=10, pady=10)
-
-        # Add a button to refresh the device list
-        refresh_icon = "refresh_icon.png"
-        refresh_image = ImageTk.PhotoImage(Image.open(refresh_icon).resize((32, 32)))
-        refresh_button = ttk.Button(button_bar, text="Refresh", image=refresh_image, compound="top",
-                                    command=self.refresh_devices)
-        refresh_button.image = refresh_image
-        refresh_button.pack(side="right", padx=10, pady=10)
-
     def _resize_handler(self, event):
         if self._ui_ready:
             self.left_frame.config(width=int(event.width/3))
@@ -123,13 +120,9 @@ class Ui_IoTShield:
     def show_loading_popup(self):
         if self.loading_popup is not None:
             return
-        self.loading_popup = tk.Toplevel(self)
-        ...
-
-        return
 
         # Create a Toplevel widget for the popup
-        self.loading_popup = tk.Toplevel(self.parent.tk)
+        self.loading_popup = tk.Toplevel(self.master)
         self.loading_popup.title("Scanning devices...")
         self.loading_popup.geometry("400x200")
 
@@ -138,9 +131,9 @@ class Ui_IoTShield:
         message_label.pack(pady=10)
 
         # Center the popup on the parent window
-        self.loading_popup.transient(self.parent.tk)
-        x = self.parent.tk.winfo_rootx() + self.parent.tk.winfo_width() // 2 - self.loading_popup.winfo_width() // 2
-        y = self.parent.tk.winfo_rooty() + self.parent.tk.winfo_height() // 2 - self.loading_popup.winfo_height() // 2
+        self.loading_popup.transient(self.master)
+        x = self.master.winfo_rootx() + self.master.winfo_width() // 2 - self.loading_popup.winfo_width() // 2
+        y = self.master.winfo_rooty() + self.master.winfo_height() // 2 - self.loading_popup.winfo_height() // 2
         self.loading_popup.geometry("+{}+{}".format(x, y))
 
         # Update the window to ensure the Label is displayed
@@ -154,6 +147,7 @@ class Ui_IoTShield:
         # Destroy the popup
         self.loading_popup.destroy()
         self.loading_popup = None
+
 
     def create_device_table(self, devices):
         self.table_frame = tk.Frame(self.main_frame)
@@ -176,26 +170,6 @@ class Ui_IoTShield:
 
         self.table.setModel(model)
         self.table.redrawTable()
-
-    def create_buttons(self):
-        # Create the buttons here
-        button_bar = tk.Frame(self.main_frame)
-        button_bar.pack(side="bottom", fill="x", pady=10)
-
-        ttk.Button(button_bar, text="Scan Network", command=self.main_window.scan_devices, style="Cust.TButton").pack(
-            side="left", padx=5)
-        ttk.Button(button_bar, text="Logs", command=self.on_logs_button_clicked, style="Cust.TButton").pack(side="left",
-                                                                                                            padx=5)
-        ttk.Button(button_bar, text="Save to PDF", command=self.on_save_to_pdf_button_clicked,
-                   style="Cust.TButton").pack(side="left", padx=5)
-        ttk.Button(button_bar, text="Help", command=self.on_help_button_clicked, style="Cust.TButton").pack(side="left",
-                                                                                                            padx=5)
-        ttk.Button(button_bar, text="Exit", command=self.main_window.on_close, style="Cust.TButton").pack(side="right",
-                                                                                                          padx=5)
-
-        self.style = ttk.Style()
-        self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"],
-                             font=("Arial", 12, "bold"), width=20, height=2)
 
     def on_logs_button_clicked(self):
         # Implement the functionality you want when the Logs button is clicked
