@@ -2,6 +2,7 @@ import os
 import sys
 import tkinter as tk
 import tkinter.messagebox as messagebox
+from tkinter import ttk
 
 from device_detector import DeviceDetector
 from PIL import Image, ImageTk
@@ -14,8 +15,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 
 class Ui_IoTShield:
-    def __init__(self, root, device_detector):
+    def __init__(self, root):
         self.root = root
+        self.root.title("AI Cyber IoT Shield")
+        self.loading_popup = None
         self.device_detector = device_detector
         self.device_detector.place(x=10, y=10, width=820, height=100)
         self.ui.place(x=10, y=120, width=820, height=650)
@@ -43,11 +46,45 @@ class Ui_IoTShield:
         self.frame_3 = tk.Frame(self.root, bg="white")
         self.frame_3.pack(side="bottom", fill="both", expand=True, padx=10, pady=10)
 
-    def _resize_handler(self, event):
-        if self._ui_ready:
-            self.left_frame.config(width=int(event.width/3))
-            self.right_frame.config(width=int(event.width/3*2))
+    def setupUi(self):
+            # ... other UI setup code ...
+            self.reload_data_button = tk.Button(self.parent, text="Reload Data", command=self.parent.scan_devices)
+            self.reload_data_button.pack()
 
+    def show_loading_popup(self):
+        if self.loading_popup is not None:
+            return
+
+        # Create a Toplevel widget for the popup
+        self.loading_popup = tk.Toplevel(self.parent)
+        self.loading_popup.title("Scanning devices...")
+        self.loading_popup.geometry("800x400")
+
+        # Create a Label to display the loading message
+        message_label = tk.Label(self.loading_popup, text="Scanning all devices on the network which may take time...")
+        message_label.pack(pady=10)
+
+        # Center the popup on the parent window
+        self.loading_popup.transient(self.parent)
+        x = self.parent.winfo_rootx() + self.parent.winfo_width() // 2 - self.loading_popup.winfo_width() // 2
+        y = self.parent.winfo_rooty() + self.parent.winfo_height() // 2 - self.loading_popup.winfo_height() // 2
+        self.loading_popup.geometry("+{}+{}".format(x, y))
+
+        # Create a progress bar widget
+        progress = ttk.Progressbar(self.loading_popup, orient=tk.HORIZONTAL, length=300, mode='indeterminate')
+        progress.pack(pady=10)
+
+        # Start the progress bar animation
+        progress.start()
+        self.loading_popup.update_idletasks()
+
+    def hide_loading_popup(self):
+        if self.loading_popup is None:
+            return
+
+        # Destroy the popup
+        self.loading_popup.destroy()
+        self.loading_popup = None
 
     def create_buttons(self):
         button_bar = tk.Frame(self.root, bg="#e0e0e0")
@@ -66,20 +103,6 @@ class Ui_IoTShield:
         self.style = ttk.Style()
         self.style.configure("Cust.TButton", foreground=color_swatch["primary"], background=color_swatch["secondary"],
                              font=("Arial", 12, "bold"), width=20, height=2)
-
-
-    def block_selected_device(self):
-        selected_device = self.device_listbox.curselection()
-        if selected_device:
-            device = self.device_listbox.get(selected_device[0])
-            # Add your logic to block the device here
-            print(f"Blocking device: {device}")
-            self.device_listbox.delete(selected_device[0])
-
-    def clear_list(self):
-        self.device_listbox.delete(0, tk.END)
-
-
 
     def on_logs_button_clicked(self):
         # Implement the functionality you want when the Logs button is clicked
@@ -126,60 +149,6 @@ class Ui_IoTShield:
         pdf_document.save()
         print(f"Saved device list to {pdf_file}")
 
-    #def scan_devices(self):
-    #   devices = self.device_detector.detect_devices()
-     #   self.ui.device_listbox.delete(0, tk.END)
-    #    for device in devices:
-    #        self.ui.device_listbox.insert(tk.END, device.ip)
-
-    # Add other methods here as needed
- 
-
-    def scan_devices(self):
-        detector = Device_Detector(timeout=1, num_threads=100)
-        devices = detector.scan_devices()
-        device_clustering = DeviceClustering(devices)
-        clusters = device_clustering.cluster_devices()
-        for device_type, device_list in clusters.items():
-            print(f"{device_type}: {len(device_list)} devices")
-        self.main_frame = tk.Frame(self.parent)
-
-        self.main_frame.pack(side="top", fill="both", expand=True)
-
-        # create a header frame
-        self.header_frame = tk.Frame(self.main_frame)
-        self.header_frame.pack(side="top", fill="both")
-
-        # create a left frame
-        self.left_frame = tk.Frame(self.main_frame, bg="white")
-        self.left_frame.pack(side="left", fill="both")
-
-        # create a right frame
-        self.right_frame = tk.Frame(self.main_frame, bg="white")
-        self.right_frame.pack(side="right", fill="both")
-
-        # create a footer frame
-        self.footer_frame = tk.Frame(self.main_frame)
-        self.footer_frame.pack(side="bottom", fill="both")
-
-        # create a label for the header
-        self.header_label = tk.Label(self.header_frame, text="IoT Shield", font=("Arial Bold", 24))
-        self.header_label.pack(padx=20, pady=20)
-
-        # create a label for the left frame
-        self.left_frame_label = tk.Label(self.left_frame, text="Device List", font=("Arial Bold", 14))
-        self.left_frame_label.pack(padx=20, pady=20)
-
-        # create a label for the right frame
-        self.right_frame_label = tk.Label(self.right_frame, text="Device Info", font=("Arial Bold", 14))
-        self.right_frame_label.pack(padx=20, pady=20)
-
-        # create an image
-        image = Image.open("images/loading.gif")
-        self.loading_gif = ImageTk.PhotoImage(image)
-
-        # initialize loading_popup attribute to None
-        self.loading_popup = None
 
     def update_device_list(self, clusters):
         self.device_list.delete(0, tk.END)
@@ -193,41 +162,7 @@ class Ui_IoTShield:
             self.left_frame.config(width=int(event.width/3))
             self.right_frame.config(width=int(event.width/3*2))
 
-    def show_loading_popup(self):
-        if self.loading_popup is not None:
-            return
-
-        # Create a Toplevel widget for the popup
-        self.loading_popup = tk.Toplevel(self.root)
-        self.loading_popup.title("Scanning devices...")
-        self.loading_popup.geometry("400x200")
-
-        # Create a Label to display the loading message
-        message_label = tk.Label(self.loading_popup, text="Scanning all devices on the network which may take time...")
-        message_label.pack(pady=10)
-
-        # Center the popup on the parent window
-        self.loading_popup.transient(self.root)
-        x = self.root.winfo_rootx() + self.root.winfo_width() // 2 - self.loading_popup.winfo_width() // 2
-        y = self.root.winfo_rooty() + self.root.winfo_height() // 2 - self.loading_popup.winfo_height() // 2
-        self.loading_popup.geometry("+{}+{}".format(x, y))
-
-        # Create a progress bar widget
-        progress = ttk.Progressbar(self.loading_popup, orient=tk.HORIZONTAL, length=300, mode='indeterminate')
-        progress.pack(pady=10)
-
-        # Start the progress bar animation
-        progress.start()
-        self.loading_popup.update_idletasks()
-
-    def hide_loading_popup(self):
-        if self.loading_popup is None:
-            # The popup is not displayed
-            return
-
-        # Destroy the popup
-        self.loading_popup.destroy()
-        self.loading_popup = None
+    
 
 
     def create_device_table(self, devices):

@@ -9,7 +9,8 @@ class AIIoTShield(tk.Toplevel):
     def __init__(self, main_window):
         tk.Toplevel.__init__(self, main_window)
 
-        self.device_detector = DeviceDetector()
+        self.device_detector = DeviceDetector(user_agent="your_user_agent_string_here")
+
         # Set up the UI
         self.ui = Ui_IoTShield(self)
         self.ui.setupUi()
@@ -19,14 +20,14 @@ class AIIoTShield(tk.Toplevel):
         self.update_device_list([])
 
     def scan_devices(self):
-        """
+        self.ui.show_loading_popup()
 
-        """
         devices = self.device_detector.scan_devices()
         device_clustering = DeviceClustering(devices)
         clustered_devices = device_clustering.cluster_devices()
 
         self.update_device_list(clustered_devices)
+        self.ui.hide_loading_popup()
 
     def update_device_list(self, devices):
         # Update the device list UI
@@ -37,7 +38,10 @@ class MainWindow:
         self.root = tk.Tk()
         self.root.title("AI Cyber IoT Shield")
 
+        self.ai_iot_shield = AIIoTShield(self.root)
+
         self.root.mainloop()
+
 
 if __name__ == "__main__":
     MainWindow()
