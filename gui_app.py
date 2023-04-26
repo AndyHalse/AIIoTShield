@@ -17,9 +17,11 @@ class AIIoTShield(tkinter.Toplevel):
         self.update_device_list([])
 
     def scan_devices(self):
-        self.device_detector = DeviceDetector()
+        self.device_detector = DeviceDetector(self, timeout_value)
+
         self.device_detector.place(x=10, y=10, width=820, height=100)
         self.ui.place(x=10, y=120, width=820, height=650)
+        self.device_detector.scan_devices(destroy_loading_popup=True)
 
         devices = self.device_detector.scan_devices()
         device_clustering = DeviceClustering(devices)

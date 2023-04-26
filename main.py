@@ -1,47 +1,55 @@
 import tkinter as tk
+from tkinter import ttk
+from device_detection import DeviceDetector
 
-from device_detector import DeviceDetector
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Device Detector")
+        timeout_value = 10  # You should define this variable with a valid value
+        num_threads = 10  # You can set this value according to your needs
+        self.device_detector = DeviceDetector(self, num_threads=num_threads)
 
-from device_clustering import DeviceClustering
-from gui import Ui_IoTShield
+        self.device_detector.pack(side="top", fill="both", expand=True)
+        self.loading_popup = None
+        self.scan_button = ttk.Button(self, text="Scan devices", command=self.device_detector.scan_devices)
+        self.scan_button.pack(side="bottom", padx=10, pady=10)
 
-class AIIoTShield(tk.Toplevel):
-    def __init__(self, main_window):
-        tk.Toplevel.__init__(self, main_window)
+        self.title("AI IoT Shield")
+        self.geometry("840x780")
+        self.config(bg="white")
 
-        self.device_detector = DeviceDetector(user_agent="your_user_agent_string_here")
+        self.main_frame = tk.Frame(self)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+        self.create_buttons()
+        self.create_listbox()
+        self.create_labels()
+        self.create_entry_fields()
+        self.create_widgets()
 
-        # Set up the UI
-        self.ui = Ui_IoTShield(self)
-        self.ui.setupUi()
+        self.frame_1 = tk.Frame(self, bg="white")
+        self.frame_1.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        self.frame_2 = tk.Frame(self, bg="white")
+        self.frame_2.pack(side="left", fill="both", expand=True, padx=10, pady=10)
 
-        # Connect signals and slots
-        self.ui.reload_data_button.clicked.connect(self.scan_devices)
-        self.update_device_list([])
+        self.frame_3 = tk.Frame(self, bg="white")
+        self.frame_3.pack(side="bottom", fill="both", expand=True, padx=10, pady=10)
 
-    def scan_devices(self):
-        self.ui.show_loading_popup()
-
-        devices = self.device_detector.scan_devices()
-        device_clustering = DeviceClustering(devices)
-        clustered_devices = device_clustering.cluster_devices()
-
-        self.update_device_list(clustered_devices)
-        self.ui.hide_loading_popup()
-
-    def update_device_list(self, devices):
-        # Update the device list UI
+    def create_buttons(self):
         pass
 
-class MainWindow:
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("AI Cyber IoT Shield")
+    def create_listbox(self):
+        pass
 
-        self.ai_iot_shield = AIIoTShield(self.root)
+    def create_labels(self):
+        pass
 
-        self.root.mainloop()
+    def create_entry_fields(self):
+        pass
 
+    def create_widgets(self):
+        pass
 
 if __name__ == "__main__":
-    MainWindow()
+    app = App()
+    app.mainloop()

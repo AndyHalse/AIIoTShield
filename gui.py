@@ -19,9 +19,12 @@ class Ui_IoTShield:
         self.root = root
         self.root.title("AI Cyber IoT Shield")
         self.loading_popup = None
-        self.device_detector = device_detector
+        timeout_value = 2  # You can set this value according to your needs
+        self.device_detector = DeviceDetector(self, timeout_value)
         self.device_detector.place(x=10, y=10, width=820, height=100)
         self.ui.place(x=10, y=120, width=820, height=650)
+        self.device_detector.scan_devices(destroy_loading_popup=True)
+
 
         self.scan_button = ttk.Button(self.root, text="Scan devices", command=self.device_detector.scan_devices)
         self.scan_button.grid(row=1, column=0, padx=10, pady=10)
@@ -45,6 +48,7 @@ class Ui_IoTShield:
 
         self.frame_3 = tk.Frame(self.root, bg="white")
         self.frame_3.pack(side="bottom", fill="both", expand=True, padx=10, pady=10)
+
 
     def setupUi(self):
             # ... other UI setup code ...
