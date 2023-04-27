@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from threading import Thread
 from tkinter import messagebox, ttk
-
+import json
 import netifaces
 import nmap
 import psutil
@@ -30,20 +30,18 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class DeviceDetector:
-    def __init__(self, num_threads=10):
-        self.num_threads = num_threads
-
-    def get_device_info(self, ip):
-
-cclass DeviceDetectorFrame(tk.Frame):
     def __init__(self, parent, num_threads=10):
         super().__init__(parent)
         self.num_threads = num_threads
         self.devices_table = None
         self.progress_bar = None
+        self.devices = []  # Add this line
 
         # Initialize UI
         self.initialize_ui()
+
+    def handle_error(self, title, message):
+        self.after(0, messagebox.showerror, title, message)
 
     def initialize_ui(self):
         # Create the "Scan Devices" button
@@ -63,21 +61,8 @@ cclass DeviceDetectorFrame(tk.Frame):
         scan_thread = Thread(target=self.scan_devices)
         scan_thread.start()
 
-    def show_loading_popup(self):
-        loading_popup = tk.Toplevel(self)
-        loading_popup.title("Loading")
-        loading_popup.geometry("600x300")
-        loading_label = tk.Label(loading_popup, text="Scanning devices, please wait...")
-        loading_label.pack(expand=True, fill="both")
-        loading_popup.lift()
-        loading_popup.grab_set()
-        self.after(100, lambda: self.scan_devices(loading_popup.destroy))
-
-    def scan_devices(self, destroy_loading_popup=None):
+    def scan_devices(self):
         try:
-            if destroy_loading_popup:
-                destroy_loading_popup()
-
             # Display the progress bar and disable the scan button
             self.progress_bar.start()
             scan_button = self.winfo_children()[0]
@@ -89,126 +74,147 @@ cclass DeviceDetectorFrame(tk.Frame):
             # Scan the devices in the IP range
             devices = []
             with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
-                for ip in ip_range:
-                    executor.submit(self.get_device_info, ip, devices)
+                futures = [executor.submit(self.get_device_info, ip) for ip in ip_range]
+                for future in futures:
+                    device_info = future.result()
+                    if device_info:
+                        devices.append(device_info)
 
-            # Update the devices table
-            self.update_devices_table(devices)
+            # Store scanned devices in the instance variable
+            self.devices = devices
 
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred while trying to scan devices: {e}")
+            self.handle_error("Error", f"An error occurred while trying to scan devices: {e}")
 
         finally:
             # Stop the progress bar and re-enable the scan button
             self.progress_bar.stop()
             scan_button.configure(state=tk.NORMAL)
-   
-    def get_ip_range(self):
-            try:
-                local_ip = None
-                for addrs in psutil.net_if_addrs().values():
-                    for addr in addrs:
-                        if addr.family == socket.AF_INET:
-                            local_ip = addr.address
-                            netmask = addr.netmask
-                            break
 
-                    if local_ip and netmask:
-                        break
-
-                if not local_ip or not netmask:
-                    raise ValueError("Could not find a default gateway to determine the IP range.")
-
-                ip_interface = ipaddress.IPv4Interface(f"{local_ip}/{netmask}")
-                ip_network = ip_interface.network
-                ip_range = [str(ip) for ip in ip_network.hosts()]
-
-                return ip_range
-
-            except Exception as e:
-                logger.error(f"Error while trying to get IP range: {e}")
-                raise
-
-    def show_loading_popup(self):
-        loading_popup = tk.Toplevel(self)
-        loading_popup.title("Loading")
-        loading_popup.geometry("600x300")
-        loading_label = tk.Label(loading_popup, text="Scanning devices, please wait...")
-        loading_label.pack(expand=True, fill="both")
-        loading_popup.lift()
-        loading_popup.grab_set()
-        self.after(100, lambda: self.scan_devices(loading_popup.destroy))
-
-    def scan_devices(self, destroy_loading_popup):
-        try:
-            destroy_loading_popup()
-            ip_range = self.get_ip_range()
-
-            def scan():
-                while any(executor._threads):
-                    self.progress_bar.step(10)
-                    self.progress_bar.update()
-                    time.sleep(0.1)
-
-            def worker():
-                while not queue.empty():
-                    ip = queue.get()
-                    device_info = self.get_device_info(ip)
-                    if device_info:
-                        devices.append(device_info)
-
-            queue = Queue()
-            devices = []
-            for ip in ip_range:
-                queue.put(ip)
-
-            with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
-                for _ in range(self.num_threads):
-                    executor.submit(worker)
-                scan_thread = Thread(target=scan)
-                scan_thread.start()
-
-        except Exception as e:
-            logger.error(f"Error while trying to scan devices: {e}")
-            messagebox.showerror("Error", "An error occurred while trying to scan devices.")
-
-        # Add devices to the table
-        for i, device in enumerate(devices):
-            device_name_label = tk.Label(self.devices_table, text=device["device_type"])
-            device_name_label.grid(row=i, column=0, sticky="W")
-
-            device_ip_label = tk.Label(self.devices_table, text=device["ip"])
-            device_ip_label.grid(row=i, column=1, sticky="W")
-
-        self.progress_bar.stop()
-        self.progress_bar.destroy()
-
+    def get_devices(self):
+        # Implement the logic for fetching devices here
+        devices = []  # Replace with the actual list of devices
         return devices
 
+    def get_ip_range(self):
+        try:
+            local_ip = None
+            for addrs in psutil.net_if_addrs().values():
+                for addr in addrs:
+                    if addr.family == socket.AF_INET:
+                        local_ip = addr.address
+                        netmask = addr.netmask
+                        break
 
+                if local_ip and netmask:
+                    break
 
+            if not local_ip or not netmask:
+                raise ValueError("Could not find a default gateway to determine the IP range.")
 
-    def get_last_seen(self, ip):
-        """
-        Gets the last time a device with the given IP address was seen on the network.
-        """
-        nm = nmap.PortScanner()
-        nm.scan(hosts=ip, arguments='-sn')
-        hosts = nm.all_hosts()
-        if len(hosts) > 0:
-            host = hosts[0]
-            last_seen = nm[host]['lastboot']
-            return last_seen
-        else:
-            return "Unknown"
+            ip_interface = ipaddress.IPv4Interface(f"{local_ip}/{netmask}")
+            ip_network = ip_interface.network
+            ip_range = [str(ip) for ip in ip_network.hosts()]
+
+            return ip_range
+
+        except Exception as e:
+            logger.error(f"Error while trying to get IP range: {e}")
+            raise
+ 
+    def update_devices_table(self, devices):
+        for widget in self.devices_table.winfo_children():
+            widget.destroy()
+
+        headers = ["Device Name", "IP Address", "MAC Address", "Device Type", "Software Version", "CPU Data", "Memory Data"]
+        for i, header in enumerate(headers):
+            label = tk.Label(self.devices_table, text=header, font=("Arial", 10, "bold"))
+            label.grid(row=0, column=i, padx=5, pady=5)
+
+        for i, device in enumerate(devices, start=1):
+            device_name_label = tk.Label(self.devices_table, text=device.get("device_name", "Unknown"))
+            device_name_label.grid(row=i, column=0, padx=5, pady=5)
+
+            device_ip_label = tk.Label(self.devices_table, text=device["ip"])
+            device_ip_label.grid(row=i, column=1, padx=5, pady=5)
+
+            device_mac_label = tk.Label(self.devices_table, text=device.get("mac", "Unknown"))
+            device_mac_label.grid(row=i, column=2, padx=5, pady=5)
+
+            device_type_label = tk.Label(self.devices_table, text=device.get("device_type", "Unknown"))
+            device_type_label.grid(row=i, column=3, padx=5, pady=5)
+
+            software_version_label = tk.Label(self.devices_table, text=device.get("software_version", "Unknown"))
+            software_version_label.grid(row=i, column=4, padx=5, pady=5)
+
+            cpu_data_label = tk.Label(self.devices_table, text=device.get("cpu_data", "Unknown"))
+            cpu_data_label.grid(row=i, column=5, padx=5, pady=5)
+
+            memory_data_label = tk.Label(self.devices_table, text=device.get("memory_data", "Unknown"))
+            memory_data_label.grid(row=i, column=6, padx=5, pady=5)
 
     def get_device_info(self, ip):
         try:
-            response = requests.get(f"http://{ip}", headers={"User-Agent": self.user_agent}, timeout=self.timeout)
-            if response.status_code == 200:
-                device_type = response.headers.get("Server", "Unknown")
-                device_info = {"device_type": device_type, "ip": ip, "last_seen": self.get_last_seen(ip)}
-                return device_info
-        except requests.exceptions.RequestException:
-            pass  # Ignore timeouts and other request exceptions
-        return None
+            # Get basic device information
+            hostname = socket.getfqdn(ip)
+            mac = get_mac_address(ip=ip)
+
+            device_info = {
+                "ip": ip,
+                "hostname": hostname,
+                "mac": mac,
+                "device_name": "Unknown",
+                "device_type": "Unknown",
+                "software_version": "Unknown",
+                "cpu_data": "Unknown",
+                "memory_data": "Unknown"
+            }
+
+            # Get additional device information (e.g., device name, device type, etc.) using requests or other libraries
+
+            # ... (code to fetch additional device information)
+
+            return device_info
+
+        except Exception as e:
+            logger.error(f"Error while trying to get device info for IP {ip}: {e}")
+            return None
+
+    def get_device_info(self, ip):
+        try:
+            # Get basic device information
+            hostname = socket.getfqdn(ip)
+            mac = get_mac_address(ip=ip)
+
+            device_info = {
+                "ip": ip,
+                "hostname": hostname,
+                "mac": mac,
+                "device_name": "Unknown",
+                "device_type": "Unknown",
+                "software_version": "Unknown",
+                "cpu_data": "Unknown",
+                "memory_data": "Unknown"
+            }
+
+            # Get additional device information (e.g., device name, device type, etc.) using requests or other libraries
+            try:
+                response = requests.get(f"http://example-device-api.com/devices/{ip}/info")
+                if response.status_code == 200:
+                    device_data = json.loads(response.content)
+                    device_info["device_name"] = device_data.get("device_name", "Unknown")
+                    device_info["device_type"] = device_data.get("device_type", "Unknown")
+                    device_info["software_version"] = device_data.get("software_version", "Unknown")
+                    device_info["cpu_data"] = device_data.get("cpu_data", "Unknown")
+                    device_info["memory_data"] = device_data.get("memory_data", "Unknown")
+                else:
+                    logger.warning(f"Unable to fetch additional device info for IP {ip}.")
+            except Exception as e:
+                logger.warning(f"Error while trying to fetch additional device info for IP {ip}: {e}")
+
+            return device_info
+
+        except Exception as e:
+            logger.error(f"Error while trying to get device info for IP {ip}: {e}")
+            return None
+
