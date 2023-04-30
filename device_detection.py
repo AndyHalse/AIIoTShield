@@ -7,17 +7,21 @@ import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
+import os
+
 
 class CustomDeviceDetector:
     def __init__(self, parent, num_threads=10, timeout_value=3):
         self.parent = parent
         self.num_threads = num_threads
         self.timeout_value = timeout_value
-        self.progress_bar = ttk.Progressbar(self.parent, orient=tk.HORIZONTAL, length=200, mode="indeterminate")
+        self.progress_bar = ttk.Progressbar(
+            self.parent, orient=tk.HORIZONTAL, length=200, mode="indeterminate")
         self.running = False
         self.num_threads = num_threads
         self.devices = []
-        self.scan_button = tk.Button(self.parent, text="Scan Devices", command=self.scan_devices)
+        self.scan_button = tk.Button(
+            self.parent, text="Scan Devices", command=self.scan_devices)
         self.running = False
         self.device_name_entry = None
         self.device_ip_label = None
@@ -33,7 +37,8 @@ class CustomDeviceDetector:
 
         self.device_label = tk.Label(self.devices_table, text="Devices")
 
-        self.status_label = tk.Label(self.devices_table, text="Scanning...", font=("Arial", 16))
+        self.status_label = tk.Label(
+            self.devices_table, text="Scanning...", font=("Arial", 16))
 
         # Start the device scanning process
         self.scan_devices()
@@ -43,6 +48,11 @@ class CustomDeviceDetector:
             messagebox.showerror(title, message)
         self.parent.after(0, show_error)
 
+    def show_error(error_message):
+        def show_error_inner():
+            self.handle_error(
+                "Error", f"An error occurred while trying to update the devices table: {error_message}")
+        self.parent.after(0, show_error_inner)
 
     def scan_devices(self):
         if self.running:
@@ -51,23 +61,46 @@ class CustomDeviceDetector:
         self.running = True
         self.progress_bar.start()
 
+        # Call the _scan_devices() function in a separate thread to avoid freezing the UI
+        scan_thread = threading.Thread(target=self._scan_devices)
+        scan_thread.start()
+
+
     def _scan_devices(self):
         try:
             self.devices = self.detect_devices()
-            self.gui.devices = self.devices
-            self.gui.create_devices_table()
+            if hasattr(self, "gui"):
+                self.gui.devices = self.devices
+                self.gui.create_devices_table()
         except Exception as e:
-            def show_error():
-                self.handle_error("Error", f"An error occurred while trying to update the devices table: {e}")
-            self.parent.after(0, show_error)
+            def show_error(error_message):
+                def show_error_inner():
+                    self.handle_error(
+                        "Error", f"An error occurred while trying to update the devices table: {error_message}")
+                self.parent.after(0, show_error_inner)
+            show_error(str(e))
 
-            try:
-                # Call the _scan_devices() function in a separate thread to avoid freezing the UI
-                scan_thread = threading.Thread(target=_scan_devices)
-                scan_thread.start()
+    def detect_devices(self):
+        # Get a list of IP addresses for all network interfaces
+        ip_addresses = []
+        for interface in netifaces.interfaces():
+            if netifaces.AF_INET in netifaces.ifaddresses(interface):
+                addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET]
+                for address in addresses:
+                    ip_addresses.append(address["addr"])
 
-            except Exception as e:
-                self.handle_error("Error", f"An error occurred while trying to scan devices: {e}")
+        # Scan the network for devices
+        devices = []
+        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+            futures = [executor.submit(self.get_device_info, ip_address)
+                       for ip_address in ip_addresses]
+            for future in futures:
+                device = future.result()
+                if device is not None:
+                    devices.append(device)
+
+        # Return the list of devices
+        return devices
 
     def get_device_info(self, ip_address):
         try:
@@ -99,7 +132,6 @@ class CustomDeviceDetector:
         except Exception:
             return None
 
-
     def update_devices_table(self, devices):
         # Clear the table
         for child in self.devices_table.get_children():
@@ -121,9 +153,9 @@ class CustomDeviceDetector:
             device_icon_file = f"{device_type}.png"
             device_icon = tk.PhotoImage(file=device_icon_file)
 
-            device_label = tk.Label(self.devices_table, text=device_name, name=f"device_label_{i}")
+            device_label = tk.Label(
+                self.devices_table, text=device_name, name=f"device_label_{i}")
             device_label.grid(row=i+1, column=0, sticky="nsew")
-
 
             ip_label = tk.Label(self.devices_table, text=device_ip)
             ip_label.grid(row=i+1, column=1, sticky="nsew")
@@ -139,6 +171,5 @@ class CustomDeviceDetector:
         self.progress_bar.stop()
         self.scan_button.configure(state=tk.NORMAL)
         self.devices_table.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.status_label = tk.Label(self.devices_table, text="Scanning...", font=("Arial", 16))
-
-
+        self.status_label = tk.Label(
+            self.devices_table, text="Scanning...", font=("Arial", 16))
