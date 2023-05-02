@@ -1,13 +1,8 @@
 import csv
-import threading
 import requests
-import tkinter as tk
 import nmap
 import platform
 import psutil
-
-from tkinter import messagebox, ttk
-from scapy.all import srp
 
 class Device:
     def __init__(self, ip_address, mac_address, vendor_name, model, cpu_data, memory_data):
@@ -70,3 +65,7 @@ class DeviceDetector:
     def get_memory_data(self):
         virtual_mem = psutil.virtual_memory().total
         return virtual_mem
+    
+if __name__ == '__main__':
+    app = DeviceDetectorGUI()
+    app.mainloop()
