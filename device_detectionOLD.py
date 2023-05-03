@@ -1,13 +1,10 @@
 import csv
-import threading
-import requests
-import tkinter as tk
-import nmap
-import platform
-import psutil
+import ipaddress
+import os
+import socket
 
-from tkinter import messagebox, ttk
-from scapy.all import srp
+import nmap
+import psutil
 
 class Device:
     def __init__(self, ip_address, mac_address, vendor_name, model, cpu_data, memory_data):
@@ -19,54 +16,56 @@ class Device:
         self.memory_data = memory_data
 
 class DeviceDetector:
-    def __init__(self, user_agent):
-        self.user_agent = user_agent
-        self.devices = []
+    def __init__(self):
+        self.csv_file = os.path.join(os.path.dirname(__file__), 'detected_devices.csv')
 
-    def detect(self, ip_range):
+    def detect(self):
         detected_devices = []
-        scanner = nmap.PortScanner()
-        scanner.scan(hosts=ip_range, arguments='-sP')
+        ip_ranges = self.get_ip_ranges()
 
-        # Iterating over the scanned devices and extracting their info
-        for device in scanner.all_hosts():
-            if 'mac' in scanner[device]['addresses']:
-                ip_address = device
-                mac_address = scanner[device]['addresses']['mac']
-                vendor_name = scanner[device]['vendor'][mac_address]
-                model = 'unknown'
-                cpu_data = self.get_cpu_data()
-                memory_data = self.get_memory_data()
+        for ip_range in ip_ranges:
+            scanner = nmap.PortScanner()
+            scanner.scan(hosts=str(ip_range), arguments="-sP")
 
-                device = Device(ip_address, mac_address, vendor_name, model, cpu_data, memory_data)
-                detected_devices.append(device)
+            # Iterating over the scanned devices and extracting their info
+            for device in scanner.all_hosts():
+                if scanner[device].get('addresses'):
+                    ip_address = device
+                    mac_address = scanner[device]['addresses'].get('mac', "")
+                    vendor_name = scanner[device]['vendor'].get(mac_address, "")
+                    model = 'unknown'
+                    cpu_data = self.get_cpu_data()
+                    memory_data = self.get_memory_data()
 
-                self.write_csv(device)
+                    device = Device(ip_address, mac_address, vendor_name, model, cpu_data, memory_data)
+                    detected_devices.append(device)
+
+                    self.write_csv(device)
+
         return detected_devices
 
     def write_csv(self, device):
-        with open('devices.csv', mode='a', newline='') as devices_file:
-            writer = csv.writer(devices_file)
-            writer.writerow([device.ip_address, device.mac_address, device.vendor_name, device.model, device.cpu_data, device.memory_data])
-
-    def get_vendor(self, mac_address):
-        if mac_address is None:
-            return ""
-
-        try:
-            response = requests.get(f"https://api.macvendors.com/{mac_address}")
-            if response.status_code == 200:
-                return response.text.strip()
-
-            return ""
-        except requests.exceptions.RequestException as e:
-            print(f"Error: {e}")
-            return ""
+        with open(self.csv_file, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow([device.ip_address, device.mac_address, device.vendor_name, device.model])
 
     def get_cpu_data(self):
-        cpu = platform.processor()
-        return cpu
+        cpu = psutil.cpu_percent()
+        return {'usage': cpu}
 
     def get_memory_data(self):
-        virtual_mem = psutil.virtual_memory().total
-        return virtual_mem
+        virtual_memory = psutil.virtual_memory()
+        memory_usage = virtual_memory.total - virtual_memory.available
+        return {'usage': memory_usage}
+
+    def get_ip_ranges(self):
+        ip_ranges = []
+
+        interfaces = psutil.net_if_addrs()
+        for iface_name in interfaces:
+            for addr in interfaces[iface_name]:
+                if addr.family == socket.AF_INET:
+                    ip_network = ipaddress.ip_network(addr.address + '/' + str(addr.netmask), strict=False)
+                    ip_ranges.append(ip_network)
+
+        return ip_ranges
