@@ -122,33 +122,7 @@ class DeviceDetector:
         }
         return colors
 
-    # Main function
-    def main():
-        if not check_compatibility():
-            sys.exit("Incompatible OS or chipset")
-
-        ip_range = "192.168.1.0/24"
-        nmap_output = run_nmap(ip_range)
-        devices = parse_nmap_output(nmap_output)
-
-        for device in devices:
-            device["type"] = detect_device_type(device["name"])
-
-        ip_ranges = detect_ip_ranges(devices)
-
-        byte_rates_data = []
-        for device in devices:
-            byte_rate = calculate_byte_rates([device])[device["ip"]]
-            byte_rates_data.append([byte_rate["in"], byte_rate["out"]])
-
-        kmeans = train_clustering_model(byte_rates_data)
-        anomalies = detect_anomalies
-
-        anomalies = []
-        for idx, label in enumerate(labels):
-            if label == 1:
-                anomalies.append(idx)
-        return anomalies
+ 
 
     # Function to send email notifications
     def send_email_notification(device, email_config):
