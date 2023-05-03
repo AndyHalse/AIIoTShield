@@ -2,7 +2,11 @@ import os
 import sys
 import tkinter as tk
 from ipaddress import ip_network
-from device_detection import check_compatibility, run_nmap, parse_nmap_output, detect_device_type, detect_ip_ranges, calculate_byte_rates, train_clustering_model, detect_anomalies
+from device_detection import DeviceDetector, detect_device_type, detect_ip_ranges, calculate_byte_rates, train_clustering_model, detect_anomalies
+
+if not DeviceDetector.check_compatibility():
+    print("Error: Incompatible operating system or processor architecture.")
+    sys.exit(1)
 
 class Main(tk.Tk):
     def __init__(self):
