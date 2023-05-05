@@ -8,21 +8,14 @@ from device_detector import DeviceDetector
 import device_detection
 from color_swatch import color_swatch
 
-
 class IoTShieldGUI:
-    def __init__(self, master):
-        self.master = master
-        self.device_detector = DeviceDetector(devices)
-        self.main_frame = ttk.Frame(self.master.root, padding=5)
-        self.top_frame = ttk.Frame(self.main_frame, padding=5, relief='raised')
-        self.toolbar = ttk.Frame(self.top_frame)
-        self.scan_button = ttk.Button(self.toolbar, text='Scan', command=self.scan_devices)
-        self.device_combobox = ttk.Combobox(self.toolbar, values=self.device_detector.get_device_models())
-        self.scan_output = tk.Text(self.top_frame, state='disabled')
-        self.setup_gui()
-
-
-        # create root window and set its title and geometry
+    def __init__(self):
+        # devices can be a list of device objects or a string pointing to a CSV file
+        self.device_detector = DeviceDetector(str(network))
+        self.title = "IoT Shield GUI"
+        self.width = 800
+        self.height = 600
+        
         self.root = tk.Tk()
         self.root.title(self.title)
         self.root.geometry(f"{self.width}x{self.height}")
@@ -59,7 +52,7 @@ class IoTShieldGUI:
         device_label = ttk.Label(self.toolbar, text="Devices:")
         device_label.pack(side=tk.LEFT, padx=2, pady=2)
 
-        self.device_combobox = ttk.Combobox(self.toolbar, values=self.get_device_models())
+        self.device_combobox = ttk.Combobox(self.toolbar, values=self.device_detector.get_device_models())
         self.device_combobox.pack(side=tk.LEFT, padx=2, pady=2)
 
         self.toolbar.pack(side=tk.TOP, fill=tk.X)
@@ -71,22 +64,38 @@ class IoTShieldGUI:
 
         # initialize device detector
         self.refresh_list()
-
+        
+        
     def refresh_list(self):
         self.device_detector.scan_network()
+
+class SaveData:
+
+    def __init__(self, saved_data):
+        self.saved_data = saved_data
 
     def save_data(self):
         try:
             directory = "saved_data"
             if not os.path.exists(directory):
                 os.makedirs(directory)
+
             filename = "data.txt"
-            with open(os.path.join(directory, filename), "w") as file:
+            file_path = os.path.join(directory, filename)
+
+            with open(file_path, "w") as file:
                 for record in self.saved_data:
                     file.write(f"{record}\n")
-            print(f"Data saved to {directory}/{filename}")
+            
+            print(f"Data saved to {file_path}")
+
         except Exception as e:
             print(f"Error saving data: {e}")
+
+            saved_data = ['record1', 'record2', 'record3']
+            saver = SaveData(saved_data)
+            saver.save_data()
+
 
     def initialize_widgets(self):
         try:
@@ -141,29 +150,22 @@ class IoTShieldGUI:
             print(f"Error initializing widgets: {e}")
 
     def create_table(self):
+        columns = ("IP Address", "MAC Address", "Vendor Name", "Device Type", "OS", "OS Version", "Open Ports", "Subnet Info", "DHCP Info", "Network Info", "Security Info")
         try:
-            # Define the columns for the table
-            columns = ("IP Address", "MAC Address", "Device Manufacturer", "Device Name")
-
             # Create the table with the defined columns
             self.table = ttk.Treeview(self.table_frame, columns=columns, show="headings")
-
             # Set column headings
             for col in columns:
                 self.table.heading(col, text=col)
-
             # Pack the table into the UI
             self.table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
             # Populate a combobox with unique device types
+            self.device_combobox = ttk.Combobox(self.table_frame)
             self.device_combobox['values'] = self.get_device_models()
 
-            # Pack the table into the UI again
-            self.table.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         except Exception as e:
-            print(f"Error creating table: {e}")
-
-            
+            print(f"Error creating table: {e}") 
 
 
     def show_help(self):

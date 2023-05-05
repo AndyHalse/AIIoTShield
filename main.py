@@ -1,54 +1,38 @@
-import os
 import socket
-import sys
 import tkinter as tk
 from email.message import EmailMessage
-from ipaddress import IPv4Address, ip_network
-from device_detector import DeviceDetector
-import nmap
+from ipaddress import ip_network
 
-from device_detection import DeviceDetector
 from gui import IoTShieldGUI
+from device_detector import DeviceDetector
 
 class Main(tk.Tk):
     """
     Main class for Device Detector
     """
+
     def __init__(self):
         super().__init__()
         self.title("Device Detector")
-        self.timeout_value = 10
-        self.num_threads = 10
 
-        # Instantiate the Gui class
-        self.gui = IoTShieldGUI(self)
-        self.device_list = []
+        # set up a default IP address range
+        network = ip_network("192.168.0.0/24", strict=False)
 
-        # Add GUI elements here
-        # Get the IP address range of the current network
-        self.device_detector = DeviceDetector(ip_range=self.get_ipv4_network(), device_list=self.device_list)
+        try:
+            # Get the IP address of the current machine
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.connect(("8.8.8.8", 53))
+                ip_address = s.getsockname()[0]
 
+            # Generate the IP address range for the network
+            network = ip_network(ip_address + "/24", strict=False)
 
+        except OSError:
+            print("No network connection, defaulting to 192.168.0.0/24")
 
-def get_ipv4_network():
-    """
-    Get the IP address range of the current network
-    :return: str, the IP address range
-    """
-    try:
-        # Get the IP address of the current machine
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(("8.8.8.8", 80))
-            ip_address = s.getsockname()[0]
-
-        # Generate the IP address range for the network
-        network = ip_network(ip_address + "/24", strict=False)
-        return str(network)
-    
-    except OSError:
-        return "No network connection"
-
-
+        # Instantiate the Gui class, and pass the DeviceDetector object as a parameter
+        self.device_detector = DeviceDetector(network)
+        self.gui = IoTShieldGUI(self, self.device_detector)
 
 if __name__ == "__main__":
     app = Main()
